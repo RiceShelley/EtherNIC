@@ -1,0 +1,5 @@
+sim/sim_build
+sim/__pycache__
+sim/*.xml
+sim/*.ghw
+sim/*.cf
