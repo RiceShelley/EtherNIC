@@ -84,21 +84,11 @@ architecture rtl of MAC is
         en => '0'
     );
 
-    signal layer_two_eth_out : t_SPH;
-    signal layer_two_eth_start : std_logic;
-
-    signal layer_two_eth_fifo_full : std_logic;
-
-    signal layer_two_fifo_out : t_SPH := (
-        data => (others => '0'),
-        consent => '0',
-        en => '0'
-    );
-
-    signal layer_two_fifo_empty : std_logic;
-
 begin
 
+    ------------------------------------------------------------------
+    -- Phy interfaces
+    ------------------------------------------------------------------
     gen_mii_interface : if (GEN_MII = TRUE) generate
         mii_interface_inst : entity work.MII_Phy_Interface(rtl)
         port map (
@@ -118,30 +108,14 @@ begin
         );
     end generate gen_mii_interface;
 
-    eth_to_layer_two_eth_inst : entity work.eth_to_layer_two_eth(rtl)
+    ------------------------------------------------------------------
+    -- RX pipeline
+    ------------------------------------------------------------------
+    MAC_rx_pipeline_inst : entity work.MAC_rx_pipeline(rtl)
     port map (
         clk => clk,
         rst => rst,
-        pkt_start => layer_two_eth_start,
-        din => rx_data_fifo,
-        dout => layer_two_eth_out
-    );
-
-    layer_two_fifo_out.consent <= not layer_two_fifo_empty;
-
-    layer_two_eth_fifo : entity work.sync_fifo(rtl)
-    generic map (
-        DATA_WIDTH  => 8,
-        DEPTH       => MAX_ETH_FRAME_SIZE)
-    port map (
-        clk     => clk,
-        rst     => rst,
-        wr_data => layer_two_eth_out.data,
-        wr_en   => layer_two_eth_out.en,
-        full    => layer_two_eth_fifo_full,
-        rd_data => layer_two_fifo_out.data,
-        rd_en   => layer_two_fifo_out.en,
-        empty   => layer_two_fifo_empty
+        phy_data_in => rx_data_fifo
     );
 
 end architecture rtl;

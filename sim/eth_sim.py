@@ -77,6 +77,10 @@ async def eth_sim(dut):
     bstr = b'\xCA\xFE\xBA\xBE\xBE\xEF\xDE\xAD\xBA\xBE\xBE\xEF\x00\x00\x00\xFF\x00\x46'
     for i in range(70):
         bstr = bstr + i.to_bytes(1, byteorder='big')
+
+    for b in bstr:
+        print(format(b, '02x'), end='') 
+    print("")
     await mii_phy.rx.send(GmiiFrame.from_payload(bstr))
     #x_data = await mii_phy.tx.recv()
     await Timer(10, 'us')
