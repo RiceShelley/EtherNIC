@@ -24,11 +24,11 @@ entity MII_Phy_Interface is
         sys_clk     : in std_logic := '0';
         sys_rst     : in std_logic := '0';
         tx_busy     : out std_logic := '0';
+        rx_done     : out std_logic := '0';
         -- Tx Data in
         sph_din     : inout t_SPH;
         -- Rx Data Out
         sph_dout    : inout t_SPH;
-        
         --------------------------------
         -- Signals in MII clock domain
         --------------------------------
@@ -49,10 +49,13 @@ architecture rtl of MII_Phy_Interface is
     -- Inter packet gap is 12 bytes or 24 tx_clk cycles
     constant INTER_PKT_GAP_SIZE : natural := 12 * 2;
 
+    constant TIMEOUT_MAX : natural := 8;
+
     -- RX recv process signals
     signal rx_byte      : std_logic_vector(7 downto 0) := (others => '0');
     signal got_rx_byte  : std_logic := '0';
     signal wr_rx_byte   : std_logic := '0';
+    signal fifo_wr_rx   : std_logic := '0';
    
     -- RX output fifo signals
     signal dout_fifo_full   : std_logic := '0';
@@ -72,36 +75,64 @@ architecture rtl of MII_Phy_Interface is
     signal phy_clk_tx_busy      : std_logic := '0';
     signal tx_inter_pkt_gap_cnt : unsigned(31 downto 0) := (others => '0');
 
+    signal rx_pkt_timeout           : unsigned(7 downto 0) := (others => '0');
+    signal rx_active_pkt            : std_logic := '0';
+    signal phy_rx_pkt_done          : std_logic := '0';
 
 begin
     -------------------------------------------------------------------------------------------
     --                                      MII RX                                           --
     -------------------------------------------------------------------------------------------
 
-    ---------------------------
+    -------------------------------------------------
     -- Read packets from phy
-    ---------------------------
+    -------------------------------------------------
     proc_rx : process(rx_clk) 
     begin
         if rising_edge(rx_clk) then
-            if rx_en /= '1' then
-                got_rx_byte <= '0';
-                wr_rx_byte <= '0';
+            if rx_en = '1' then
+                got_rx_byte             <= not got_rx_byte;
+                wr_rx_byte              <= got_rx_byte;
+                rx_byte                 <= rx_data & rx_byte(7 downto 4);
+                rx_pkt_timeout          <= (others => '0');
+                rx_active_pkt           <= '1';
+                phy_rx_pkt_done         <= '0';
             else
-                if rx_en = '1' then
-                    got_rx_byte <= not got_rx_byte;
-                    wr_rx_byte <= got_rx_byte;
-                    rx_byte <= rx_data & rx_byte(7 downto 4);
+                if (rx_active_pkt = '1') then
+                    wr_rx_byte      <= '0';
+                    if (rx_pkt_timeout = TIMEOUT_MAX) then
+                        rx_active_pkt   <= '0';
+                        phy_rx_pkt_done <= '1';
+                    else
+                        rx_pkt_timeout <= rx_pkt_timeout + 1;
+                    end if;
+                else
+                    got_rx_byte     <= '0';
+                    wr_rx_byte      <= '0';
+                    rx_pkt_timeout  <= (others => '0');
                 end if;
             end if;
         end if;
     end process proc_rx;
+    
+    -------------------------------------------------
+    -- Sync phy_rx_pkt_done signal to sys clk domain
+    -------------------------------------------------
+    sync_rx_pkt_done : entity work.simple_pipe(rtl)
+    generic map (
+        PIPE_WIDTH  => 1,
+        DEPTH       => 2
+    ) port map (
+        clk         => sys_clk,
+        pipe_in(0)  => phy_rx_pkt_done,
+        pipe_out(0) => rx_done
+    );
 
     -------------------------------------------------
     -- Sync packets from phy to sys clk domain
     -------------------------------------------------
-    sph_dout.consent <= (not dout_fifo_empty);
-
+    sph_dout.consent    <= (not dout_fifo_empty);
+    fifo_wr_rx          <= '1' when (wr_rx_byte = '1' and rx_pkt_timeout = 0) else '0';
     async_dout_fifo : entity work.async_fifo(rtl)
     generic map (
         DATA_WIDTH  => rx_byte'length,
@@ -110,7 +141,7 @@ begin
         -- Write port (rx phy clk domain)
         wr_clk  => rx_clk,
         wr_data => rx_byte,
-        wr_en   => wr_rx_byte,
+        wr_en   => fifo_wr_rx,
         full    => dout_fifo_full,
         -- Read port (System clk domain)
         rd_clk  => sys_clk,
@@ -189,6 +220,9 @@ begin
     -- Indicator that another packet can be loaded into the tx FIFO
     phy_clk_tx_busy <= '1' when (tx_fsm /= WAIT_FOR_PKT) else '0';
    
+    -------------------------------------------------
+    -- Sync phy_clk_tx_busy signal to sys clk domain
+    -------------------------------------------------
     sync_tx_busy_signal : entity work.simple_pipe(rtl)
     generic map (
         PIPE_WIDTH  => 1,

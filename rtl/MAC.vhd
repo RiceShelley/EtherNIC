@@ -7,11 +7,14 @@ use work.eth_pack.all;
 
 entity MAC is
     generic (
-        ITR_WIDTH   : natural := 16;
-        DATA_WIDTH  : natural := 32;
-        ADDR_WIDTH  : natural := 32;
-        STRB_WIDTH  : natural := 32 / 8;
-        RESP_WIDTH  : natural := 2);
+        ITR_WIDTH           : natural := 16;
+        DATA_WIDTH          : natural := 32;
+        ADDR_WIDTH          : natural := 32;
+        STRB_WIDTH          : natural := 32 / 8;
+        RESP_WIDTH          : natural := 2;
+        AXIS_DATA_WIDTH     : natural := 8;
+        AXIS_STRB_WIDTH     : natural := 1
+        );
     port (
         clk         : in std_logic;
         rst         : in std_logic;
@@ -45,7 +48,11 @@ entity MAC is
         ---------------------------------------
         -- AXI RX Data Stream 
         ---------------------------------------
-
+        rx_m_axis_tdata        : out std_logic_vector(AXIS_DATA_WIDTH - 1 downto 0);
+        rx_m_axis_tstrb        : out std_logic_vector(AXIS_STRB_WIDTH - 1 downto 0);
+        rx_m_axis_tvalid       : out std_logic;
+        rx_m_axis_tready       : in std_logic;
+        rx_m_axis_tlast        : out std_logic;
         ---------------------------------------
         -- AXI TX Data Stream 
         ---------------------------------------
@@ -72,6 +79,7 @@ architecture rtl of MAC is
     -- Phy interface signals
     ---------------------------
     signal tx_busy : std_logic;
+    signal rx_done : std_logic;
     signal tx_data_fifo : t_SPH := (
         data => (others => '0'),
         consent => '0',
@@ -95,6 +103,7 @@ begin
             sys_clk     => clk,
             sys_rst     => rst,
             tx_busy     => tx_busy,
+            rx_done     => rx_done,
             sph_din     => tx_data_fifo,
             sph_dout    => rx_data_fifo,
             tx_clk      => mii_tx_clk,
@@ -112,10 +121,19 @@ begin
     -- RX pipeline
     ------------------------------------------------------------------
     MAC_rx_pipeline_inst : entity work.MAC_rx_pipeline(rtl)
-    port map (
-        clk => clk,
-        rst => rst,
-        phy_data_in => rx_data_fifo
+    generic map (
+        AXIS_DATA_WIDTH => AXIS_DATA_WIDTH,
+        AXIS_STRB_WIDTH => AXIS_STRB_WIDTH
+    ) port map (
+        clk             => clk,
+        rst             => rst,
+        rx_done_in      => rx_done,
+        phy_data_in     => rx_data_fifo,
+        m_axis_tdata    => rx_m_axis_tdata,
+        m_axis_tstrb    => rx_m_axis_tstrb,
+        m_axis_tvalid   => rx_m_axis_tvalid,
+        m_axis_tready   => rx_m_axis_tready,
+        m_axis_tlast    => rx_m_axis_tlast
     );
 
 end architecture rtl;

@@ -9,7 +9,7 @@ package eth_pack is
     ---------------------------------
     constant MAX_ETH_FRAME_SIZE : natural := 1530;
 
-    -- Size in bytes of eth frame feilds 
+    -- Size in bytes of eth frame fields 
     constant PREAMBLE_SIZE      : natural := 7;
     constant SFD_SIZE           : natural := 1;
     constant MAC_DST_SIZE       : natural := 6;
@@ -19,17 +19,17 @@ package eth_pack is
     constant FCS_SIZE           : natural := 4;
     constant INTER_PKT_GAP_SIZE : natural := 12;
 
-    -- Offsets in bytes of eth frame feilds
+    -- Offsets in bytes of eth frame fields
     constant PREAMBLE_OFFSET        : natural := 0;
     constant SFD_OFFSET             : natural := PREAMBLE_OFFSET + PREAMBLE_SIZE;
     constant MAC_DST_OFFSET         : natural := SFD_OFFSET + SFD_SIZE;
     constant MAC_SRC_OFFSET         : natural := MAC_DST_OFFSET + MAC_DST_SIZE;
-    constant TAG_OFFSET             : natural := MAC_SRC_OFFSET + MAC_SRC_SIZE;
-    constant LENGTH_OFFSET          : natural := TAG_OFFSET + TAG_SIZE;
+    --constant TAG_OFFSET             : natural := MAC_SRC_OFFSET + MAC_SRC_SIZE;  <--- Is this thing used???
+    constant LENGTH_OFFSET          : natural := MAC_SRC_OFFSET + MAC_SRC_SIZE;
     constant FCS_OFFSET             : natural := LENGTH_OFFSET + LENGTH_SIZE;
     constant INTER_PKT_GAME_OFFSET  : natural := FCS_OFFSET + FCS_SIZE; 
 
-    -- Bit width of eth frame feilds 
+    -- Bit width of eth frame fields 
     constant PREAMBLE_WIDTH         : natural := PREAMBLE_SIZE * 8;
     constant SFD_WIDTH              : natural := SFD_SIZE * 8;
     constant MAC_DST_WIDTH          : natural := MAC_DST_SIZE * 8;
@@ -44,8 +44,9 @@ package eth_pack is
     constant START_SEQ_WIDTH    : natural := START_SEQ_SIZE * 8;
     constant START_SEQ          : std_logic_vector(START_SEQ_WIDTH - 1 downto 0) := X"55555555555555D5";
 
-    constant MIN_FRAME_SIZE : natural := 42;
+    constant MIN_FRAME_SIZE : natural := 46;
 
+    constant LAYER2_FIELDS_SIZE : natural := MAC_DST_SIZE + MAC_SRC_SIZE + LENGTH_SIZE + FCS_SIZE;
     constant CRC32_POLY : std_logic_vector(31 downto 0) := X"04c11db7";
 
 end package eth_pack;
