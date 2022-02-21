@@ -8,6 +8,7 @@ entity simple_pipe is
         DEPTH       : natural := 2);
     port (
         clk         : in std_logic := '0';
+        en          : in std_logic := '1';
         pipe_in     : in std_logic_vector(PIPE_WIDTH - 1 downto 0);
         pipe_out    : out std_logic_vector(PIPE_WIDTH - 1 downto 0)
     );
@@ -25,7 +26,9 @@ begin
 
     shift_proc : process(clk) begin
         if rising_edge(clk) then
-            pipe <= pipe(1 to pipe'right) & pipe_in;
+            if (en = '1') then
+                pipe <= pipe(1 to pipe'right) & pipe_in;
+            end if;
         end if;
     end process shift_proc;
 
