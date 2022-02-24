@@ -9,8 +9,8 @@ DEBUG_LEVEL = logging.INFO
 MEM_SIZE = 32
 
 # Notes:
-# Pessimistic full causes full to update after 2 write clocks
-# Pessimistic empty causes empty to update after 2 read clocks
+# Pessimistic full causes full to update after 2 read clocks
+# Pessimistic empty causes empty to update after 2 write clocks
 
 def round_up(x:int, up_to:int):
     """ Round up to the nearest specified value"""
