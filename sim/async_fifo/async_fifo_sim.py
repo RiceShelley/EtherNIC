@@ -9,8 +9,8 @@ DEBUG_LEVEL = logging.INFO
 MEM_SIZE = 32
 
 # Notes:
-# Pessimistic full causes full to update after 2 read clocks
-# Pessimistic empty causes empty to update after 2 write clocks
+# Pessimistic full causes full to update immediately when filling but takes 2 read cycles to unset when reading
+# Pessimistic empty causes empty to update immediately when reading but takes 2 write cycles to unset when writing
 
 def round_up(x:int, up_to:int):
     """ Round up to the nearest specified value"""
@@ -125,7 +125,7 @@ async def big_test(dut):
     read2_start = round_up(fill2_end + (2*READ_CLOCK_PERIOD), 100)
     read2_end = read2_start + (num_reads2 * READ_CLOCK_PERIOD)
     num_reads3 = num_reads
-    read3_start = round_up(read2_end + (2*WRITE_CLOCK_PERIOD), 100)
+    read3_start = round_up(read2_end, 100)  # Shouldn't need longer wait. Previous read should handle pessimistic empty
     read3_end = read3_start + (num_reads3 * READ_CLOCK_PERIOD)
     dut._log.info("FIFO fill %d to %d" % (fill_start, fill_end))
     dut._log.info("FIFO read %d to %d" % (read_start, read_end))
