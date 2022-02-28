@@ -105,3 +105,46 @@ async def mac_standard_tx_test(dut):
         # Verify that what was read matches what was sent
         expected = GmiiFrame.from_payload(pkt).data
         assert actual == expected
+
+# Test that no packets are lost when TX FIFOS are flooded
+@cocotb.test()
+async def mac_flood_tx_pipe(dut):
+    clock = Clock(dut.clk, 10, units="ns")
+    cocotb.start_soon(clock.start())
+
+    dut.rst.value = 0
+
+    mii_phy = MiiPhy(
+        dut.mii_tx_data, 
+        dut.mii_tx_er, 
+        dut.mii_tx_en, 
+        dut.mii_tx_clk,
+        dut.mii_rx_data, 
+        dut.mii_rx_er, 
+        dut.mii_rx_en, 
+        dut.mii_rx_clk, 
+        dut.mii_rst_phy, 
+        speed=10e6
+    )
+    axis_source = AxiStreamSource(AxiStreamBus.from_prefix(dut, "tx_s_axis"), dut.clk, dut.rst)
+
+    await Timer(10, 'us')
+    mii_phy.set_speed(100e6)
+    eth = eth_frame(b'\xDE\xAD\xBE\xEF\x00\x00', b'\xCA\xFE\xBA\xBE\x00\x00')
+
+    trials = 3
+    expected = []
+    for _ in range(0, trials):
+        # Create random packet
+        random_data = ''.join(random.choice(string.ascii_letters) for i in range(random.randrange(0, 1000)))
+        pkt = eth.gen_pkt(random_data)
+        # Send packet data to MAC AXI Stream Interface
+        await axis_source.send(pkt)
+        expected.append(GmiiFrame.from_payload(pkt).data)
+
+    await axis_source.wait()
+
+    # Verify results
+    for e in expected:
+        actual = (await mii_phy.tx.recv()).data
+        assert e == actual

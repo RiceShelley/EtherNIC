@@ -14,11 +14,15 @@ package body math_pack is
     function clog2(NUM : unsigned) return natural is 
         variable n : unsigned(NUM'range) := NUM - 1;
     begin
-        for i in n'left downto 0 loop
-            if n(i) = '1' then
-                return i + 1;
-            end if;
-        end loop;
+        if n = 0 then
+            return 1;
+        else
+            for i in n'left downto 0 loop
+                if n(i) = '1' then
+                    return i + 1;
+                end if;
+            end loop;
+        end if;
     end function clog2;
 
     function clog2(NUM : natural) return natural is

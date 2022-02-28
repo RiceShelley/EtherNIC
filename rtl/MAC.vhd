@@ -8,6 +8,7 @@ use work.eth_pack.all;
 
 entity MAC is
     generic (
+        TX_UNFOLD_CNT       : natural := 2;
         ITR_WIDTH           : natural := 16;
         DATA_WIDTH          : natural := 32;
         ADDR_WIDTH          : natural := 32;
@@ -117,21 +118,21 @@ begin
     ------------------------------------------------------------------
     MAC_tx_pipeline_inst : entity work.MAC_tx_pipeline(rtl)
     generic map (
-        PIPELINE_ELEM_CNT => 2
+        PIPELINE_ELEM_CNT   => TX_UNFOLD_CNT
     ) port map (
-        clk             => clk,
-        rst             => rst,
-        tx_busy_in      => tx_busy,
+        clk                 => clk,
+        rst                 => rst,
+        tx_busy_in          => tx_busy,
         -- Axi Data Stream Slave
-        s_axis_tdata    => tx_s_axis_tdata,
-        s_axis_tstrb    => tx_s_axis_tstrb,
-        s_axis_tvalid   => tx_s_axis_tvalid,
-        s_axis_tready   => tx_s_axis_tready,
-        s_axis_tlast    => tx_s_axis_tlast,
+        s_axis_tdata        => tx_s_axis_tdata,
+        s_axis_tstrb        => tx_s_axis_tstrb,
+        s_axis_tvalid       => tx_s_axis_tvalid,
+        s_axis_tready       => tx_s_axis_tready,
+        s_axis_tlast        => tx_s_axis_tlast,
         -- AXI Data Stream Master
-        m_axis_tdata    => tx_pipe_axis_tdata,
-        m_axis_tvalid   => tx_pipe_axis_tvalid,
-        m_axis_tready   => tx_pipe_axis_tready
+        m_axis_tdata        => tx_pipe_axis_tdata,
+        m_axis_tvalid       => tx_pipe_axis_tvalid,
+        m_axis_tready       => tx_pipe_axis_tready
     );
 
     ------------------------------------------------------------------
