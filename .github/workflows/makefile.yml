@@ -17,7 +17,7 @@ jobs:
     - name: Install apt packages
       run: |
            cd tests \
-           xargs -a apt_requirements.txt sudo apt-get -y install
+           xargs -a apt_requirements.txt sudo apt-get install -y
       
     - name: Install Python3 dependencies
       run: pip3 install -r pip_requirements.txt
