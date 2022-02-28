@@ -5,7 +5,7 @@ import logging
 
 CLOCK_PERIOD = 10
 DEBUG_LEVEL = logging.INFO
-MEM_SIZE = 32
+MEM_SIZE = 16
 
 async def read_fifo(dut, start, end, units="ns"):
     """ Read all entries from the FIFO """

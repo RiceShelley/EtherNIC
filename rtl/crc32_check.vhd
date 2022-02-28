@@ -25,11 +25,6 @@ architecture rtl of crc32_check is
     signal expected_pkt_crc : std_logic_vector(FCS_WIDTH - 1 downto 0) := (others => '0');
     signal actual_pkt_crc   : std_logic_vector(FCS_WIDTH - 1 downto 0) := (others => '0');
 
-    signal fcs_byte_cnt     : unsigned(clog2(FCS_SIZE) - 1 downto 0)            := (others => '0');
-    signal byte_cnt         : unsigned(LENGTH_WIDTH - 1 downto 0)               := (others => '0');
-    signal frame_length     : unsigned(LENGTH_WIDTH - 1 downto 0)               := (others => '0');
-    signal got_frame_length : std_logic := '0';
-
     -- CRC 32 functions
     function lfsr_crc_serial (sr : std_logic_vector; data : std_logic) return std_logic_vector is
         variable rtn : std_logic_vector(31 downto 0);
@@ -77,12 +72,14 @@ begin
                 if (data_valid_in = '1') then
                     shift_reg       <= crc_itr(shift_reg, reverse_vec(data_in));
                     actual_pkt_crc  <= data_in & actual_pkt_crc(31 downto 8);
-                    byte_cnt        <= byte_cnt + 1;
                 end if;
             end if;
         end if;
     end process shift;
 
+    ----------------------------------------------------------------
+    -- Pipe delay of crc32 output for comparison with actual value
+    ----------------------------------------------------------------
     crc_delay_inst : entity work.simple_pipe(rtl)
     generic map (
         PIPE_WIDTH => shift_reg'length,

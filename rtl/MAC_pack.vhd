@@ -4,18 +4,11 @@ use ieee.numeric_std.all;
 
 package MAC_pack is
 
-    -- Simple handshake record
-    type t_SPH is record
-        data    : std_logic_vector(7 downto 0);
-        consent : std_logic;
-        en      : std_logic;
-    end record t_SPH;
+    constant MAC_AXIS_DATA_WIDTH : natural := 8;
+    constant MAC_AXIS_STRB_WIDTH : natural := MAC_AXIS_DATA_WIDTH / 8;
 
-    constant MAC_PACK_EMPTY_SPH : t_SPH := (
-        data    => (others => '0'),
-        consent => '0',
-        en      => '0'
-    );
+    type t_axis_data_array is array (natural range<>) of std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
+    type t_axis_strb_array is array (natural range<>) of std_logic_vector(MAC_AXIS_STRB_WIDTH - 1 downto 0);
 
 end package MAC_pack;
 
