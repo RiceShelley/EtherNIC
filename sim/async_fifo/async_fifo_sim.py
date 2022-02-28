@@ -6,7 +6,7 @@ import logging
 WRITE_CLOCK_PERIOD = 10
 READ_CLOCK_PERIOD = 7
 DEBUG_LEVEL = logging.INFO
-MEM_SIZE = 32
+MEM_SIZE = 16
 
 # Notes:
 # Pessimistic full causes full to update immediately when filling but takes 2 read cycles to unset when reading

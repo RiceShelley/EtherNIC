@@ -12,9 +12,10 @@ end package math_pack;
 package body math_pack is
 
     function clog2(NUM : unsigned) return natural is 
+        variable n : unsigned(NUM'range) := NUM - 1;
     begin
-        for i in NUM'left downto 0 loop
-            if NUM(i) = '1' then
+        for i in n'left downto 0 loop
+            if n(i) = '1' then
                 return i + 1;
             end if;
         end loop;
