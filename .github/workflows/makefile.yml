@@ -15,10 +15,12 @@ jobs:
     - uses: actions/checkout@v2
     
     - name: Install apt packages
-      run: xargs sudo apt-get install apt_requirements.txt
+      run: xargs sudo apt-get install tests/apt_requirements.txt
       
     - name: Install Python3 dependencies
-      run: pip3 install -r pip_requirements.txt
+      run: pip3 install -r tests/pip_requirements.txt
       
     - name: Run all simulations
-      run: ./run_all_tests.sh
+      run: cd tests
+           ./run_all_tests.sh
+
