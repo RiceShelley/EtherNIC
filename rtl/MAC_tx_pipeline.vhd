@@ -54,6 +54,7 @@ begin
     ) port map (
         clk             => clk,
         rst             => rst,
+        empty_in        => empty,
         -- AXI Data Stream Slave
         s_axis_tdata    => s_axis_tdata,
         s_axis_tstrb    => s_axis_tstrb,
@@ -96,10 +97,10 @@ begin
     generic map (
         PIPELINE_ELEM_CNT => PIPELINE_ELEM_CNT
     ) port map (
-        clk         => clk,
-        empty_in    => empty,
-        ready_in    => frame_ready,
-        tx_busy_in  => tx_busy_in,
+        clk             => clk,
+        empty_in        => empty,
+        ready_in        => frame_ready,
+        tx_busy_in      => tx_busy_in,
         -- AXI Data Stream Slave
         s_axis_tdata    => fpb_out_axis_tdata,
         s_axis_tvalid   => fpb_out_axis_tvalid,

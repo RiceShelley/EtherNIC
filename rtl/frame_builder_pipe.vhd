@@ -49,9 +49,9 @@ architecture rtl of frame_builder_pipe is
     signal test : std_logic_vector(7 downto 0);
 begin
 
-    ------------------------
+    -----------------------------
     -- CRC gen
-    ------------------------
+    -----------------------------
     tx_crc_pipe_inst : entity work.tx_crc_pipe(rtl)
     port map (
         clk             => clk,
@@ -67,9 +67,9 @@ begin
         m_axis_tready   => crc_axis_tready
     );
 
-    ----------------------
+    -----------------------------
     -- Detect new frame
-    ----------------------
+    -----------------------------
     new_frame <= '1' when (data_in_en_buff = '0' and s_axis_tvalid = '1') else '0';
     detect_frame_proc : process(clk) begin
         if rising_edge(clk) then
@@ -98,11 +98,12 @@ begin
     fifo_in_en      <= preamble_sfd_en_pipe(START_SEQ_SIZE - 1);
     frame_ready_out <= crc_done_delay(START_SEQ_SIZE - 1);
 
-    ------------------------
+    -----------------------------
     -- Frame fifo
-    ------------------------
+    -----------------------------
     empty_out       <= empty;
     m_axis_tvalid   <= not empty;
+    s_axis_tready   <= not frame_fifo_full;
 
     frame_fifo : entity work.sync_fifo(rtl)
     generic map (

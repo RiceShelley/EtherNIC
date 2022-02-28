@@ -21,4 +21,5 @@ $(PWD)/../../rtl/MAC_tx_pipeline.vhd \
 $(PWD)/../../rtl/MAC.vhd 
 TOPLEVEL = mac
 MODULE = mac_sim
+#TESTCASE = mac_flood_tx_pipe
 include $(shell cocotb-config --makefiles)/Makefile.sim
