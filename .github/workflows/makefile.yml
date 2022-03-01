@@ -28,5 +28,5 @@ jobs:
       
     - name: Run tests
       working-directory: ./tests
-      run: ./run_all_tests.sh
+      run: ./run_all_tests.sh --fast-fail
 
