@@ -16,8 +16,14 @@ jobs:
     
     - name: Install apt packages
       working-directory: ./tests
-      run: |
-           xargs -a apt_requirements.txt sudo apt-get install -y \
-           pip3 install -r pip_requirements.txt \
-           ./run_all_tests.sh
+      run: xargs -a apt_requirements.txt sudo apt-get install -y
+
+    - name: Install Python dependencies
+      uses: py-actions/py-dependency-install@v3
+      with: 
+        path: "tests/pip_requirements.txt"
+      
+    - name: Run tests
+      working-directory: ./tests
+      run: ./run_all_tests.sh
 
