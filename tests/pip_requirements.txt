@@ -1,0 +1,5 @@
+cocotb
+pytest
+cocotbext-eth
+cocotbext-axi
+
