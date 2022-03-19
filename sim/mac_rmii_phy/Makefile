@@ -1,5 +1,5 @@
 SIM=ghdl
-SIM_ARGS += --wave=wave.ghw
+SIM_ARGS += --wave=wave.ghw -gGEN_RMII=TRUE
 TOPLEVEL_LANG=vhdl
 VHDL_SOURCES = \
 $(PWD)/../../rtl/MAC_pack.vhd \
@@ -16,10 +16,10 @@ $(PWD)/../../rtl/fb_pipeline_reader.vhd \
 $(PWD)/../../rtl/tx_crc_pipe.vhd \
 $(PWD)/../../rtl/frame_builder_pipe.vhd \
 $(PWD)/../../rtl/MII_Phy_Interface.vhd \
+$(PWD)/../../rtl/RMII_Phy_Interface.vhd \
 $(PWD)/../../rtl/MAC_rx_pipeline.vhd \
 $(PWD)/../../rtl/MAC_tx_pipeline.vhd \
 $(PWD)/../../rtl/MAC.vhd 
 TOPLEVEL = mac
 MODULE = mac_sim
-#TESTCASE = mac_flood_tx_pipe
 include $(shell cocotb-config --makefiles)/Makefile.sim
