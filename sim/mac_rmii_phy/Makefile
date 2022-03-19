@@ -17,8 +17,6 @@ $(PWD)/../../rtl/tx_crc_pipe.vhd \
 $(PWD)/../../rtl/frame_builder_pipe.vhd \
 $(PWD)/../../rtl/MII_Phy_Interface.vhd \
 $(PWD)/../../rtl/RMII_Phy_Interface.vhd \
-$(PWD)/../../rtl/MAC_registers.vhd \
-$(PWD)/../../rtl/MDIO_controller.vhd \
 $(PWD)/../../rtl/MAC_rx_pipeline.vhd \
 $(PWD)/../../rtl/MAC_tx_pipeline.vhd \
 $(PWD)/../../rtl/MAC.vhd 

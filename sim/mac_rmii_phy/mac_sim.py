@@ -6,7 +6,7 @@ from cocotb.triggers import Timer
 from cocotbext.eth import GmiiFrame, MiiPhy
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge
-from cocotbext.axi import (AxiStreamBus, AxiStreamSource, AxiStreamSink, AxiStreamMonitor, AxiLiteMaster, AxiLiteBus)
+from cocotbext.axi import (AxiStreamBus, AxiStreamSource, AxiStreamSink, AxiStreamMonitor)
 
 class RMII_Source:
 
@@ -86,35 +86,20 @@ async def mac_standard_rx_test(dut):
     clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
 
-    await RisingEdge(dut.clk)
-    dut.s_axi_aresetn.value = 0 
-    dut.rst.value = 0
-    await RisingEdge(dut.clk)
-    dut.s_axi_aresetn.value = 1
-    await RisingEdge(dut.clk)
-
     phyClk = Clock(dut.rmii_clk, 20, units="ns")
     cocotb.start_soon(phyClk.start())
 
+    dut.rst.value = 0
+
     rmiiSource = RMII_Source(dut.rmii_clk, dut.rmii_rx_data, dut.rmii_crs_dv)
 
+    await RisingEdge(dut.clk)
+
     axis_sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "rx_m_axis"), dut.clk, dut.rst)
-    config = AxiLiteMaster(AxiLiteBus.from_prefix(dut, "s_axi"), dut.clk, dut.rst)
     eth = eth_frame(b'\xDE\xAD\xBE\xEF\x00\x00', b'\xCA\xFE\xBA\xBE\x00\x00')
 
-    # test mdio bus TODO: Expand on this
-    mdio_phy_addr = 3
-    mdio_reg_addr = 5
-    mdio_data = 0xCAFE
-    mdio_write = 1
-    mdio_pkt = (mdio_write << 31) | (mdio_reg_addr << 23) | (mdio_phy_addr << 15) | mdio_data
-    await config.write_dword(0x0000, mdio_pkt)
-    await config.write_dword(0x0008, 1)
-    # Poll until MDIO controller completes transaction
-    while (await config.read_dword(0x000C)) != 0:
-        await Timer(30, 'us')
-
     trials = 5
+
     for _ in range(0, trials):
         # Create random packet
         random_data = ''.join(random.choice(string.ascii_letters) for i in range(random.randrange(0, 1000)))
