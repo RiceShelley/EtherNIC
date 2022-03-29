@@ -45,6 +45,8 @@ architecture rtl of RMII_Phy_Interface is
     constant DIBIT_COUNT            : natural := 4;
 
     -- RX recv process signals
+    type rx_fsm_t is (IDLE, BUSY);
+    signal rx_fsm           : rx_fsm_t := IDLE;
     signal rx_dibit_cnt     : unsigned(clog2(DIBIT_COUNT) - 1 downto 0) := (others => '0');
     signal rx_byte          : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0) := (others => '0');
     signal fifo_wr_rx       : std_logic := '0';
@@ -86,30 +88,42 @@ begin
     begin
         if rising_edge(ref_clk_50mhz) then
             wr_rx_byte <= '0';
-            if (crs_dv = '1') then
-                if (rx_dibit_cnt = DIBIT_COUNT - 1) then
-                    rx_dibit_cnt <= (others => '0');
-                    wr_rx_byte <= '1';
-                else
-                    rx_dibit_cnt <= rx_dibit_cnt + 1;
-                end if;
-                rx_byte                 <= rx_data & rx_byte(7 downto 2);
-                rx_pkt_timeout          <= (others => '0');
-                rx_active_pkt           <= '1';
-                phy_rx_pkt_done         <= '0';
-            else
-                rx_dibit_cnt <= (others => '0');
-                if (rx_active_pkt = '1') then
-                    if (rx_pkt_timeout = TIMEOUT_MAX - 1) then
-                        rx_active_pkt   <= '0';
-                        phy_rx_pkt_done <= '1';
-                    else
-                        rx_pkt_timeout <= rx_pkt_timeout + 1;
+            case (rx_fsm) is
+                when IDLE =>
+                    if (crs_dv = '1' and rx_data = "01") then
+                        rx_byte                 <= rx_data & rx_byte(7 downto 2);
+                        rx_dibit_cnt            <= to_unsigned(1, rx_dibit_cnt'length);
+                        rx_fsm                  <= BUSY;
                     end if;
-                else
-                    rx_pkt_timeout  <= (others => '0');
-                end if;
-            end if;
+                when BUSY =>
+                    if (crs_dv = '1') then
+                        if (rx_dibit_cnt = DIBIT_COUNT - 1) then
+                            rx_dibit_cnt <= (others => '0');
+                            wr_rx_byte <= '1';
+                        else
+                            rx_dibit_cnt <= rx_dibit_cnt + 1;
+                        end if;
+                        rx_byte                 <= rx_data & rx_byte(7 downto 2);
+                        rx_pkt_timeout          <= (others => '0');
+                        rx_active_pkt           <= '1';
+                        phy_rx_pkt_done         <= '0';
+                    else
+                        rx_dibit_cnt <= (others => '0');
+                        if (rx_active_pkt = '1') then
+                            if (rx_pkt_timeout = TIMEOUT_MAX - 1) then
+                                rx_active_pkt   <= '0';
+                                phy_rx_pkt_done <= '1';
+                            else
+                                rx_pkt_timeout <= rx_pkt_timeout + 1;
+                            end if;
+                        else
+                            rx_pkt_timeout  <= (others => '0');
+                            rx_fsm          <= IDLE;
+                        end if;
+                    end if;
+                    when others =>
+                        rx_fsm <= IDLE;
+            end case;
         end if;
     end process proc_rx;
 
