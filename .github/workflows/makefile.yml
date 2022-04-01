@@ -13,6 +13,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: apt update
+      run: sudo apt update
     
     - name: Install apt packages
       working-directory: ./tests
