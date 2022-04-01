@@ -13,12 +13,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: apt update
+      run: sudo apt update
     
     - name: Install apt packages
       working-directory: ./tests
-      run: |
-        sudo apt update \
-        xargs -a apt_requirements.txt sudo apt-get install -y
+      run: xargs -a apt_requirements.txt sudo apt-get install -y
 
     - name: Install Python dependencies
       uses: py-actions/py-dependency-install@v3
