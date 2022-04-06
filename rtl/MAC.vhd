@@ -23,29 +23,29 @@ entity MAC is
         ---------------------------------------
         -- AXI Lite Slave 
         ---------------------------------------
-        aResetn                 : in std_logic;
+        s_axi_aresetn           : in std_logic;
         -- Read Address Channel
-        arAddrIn                : in std_logic_vector(ADDR_WIDTH - 1 downto 0);
-        arValidIn               : in std_logic;
-        arReadyOut              : out std_logic;
+        s_axi_araddr            : in std_logic_vector(ADDR_WIDTH - 1 downto 0);
+        s_axi_arvalid           : in std_logic;
+        s_axi_arready           : out std_logic;
         -- Read Data Channel
-        rDataOut                : out std_logic_vector(DATA_WIDTH - 1 downto 0);
-        rRespOut                : out std_logic_vector(RESP_WIDTH - 1 downto 0);
-        rValidOut               : out std_logic;
-        rReadyOut               : in std_logic;
+        s_axi_rdata             : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+        s_axi_rresp             : out std_logic_vector(RESP_WIDTH - 1 downto 0);
+        s_axi_rvalid            : out std_logic;
+        s_axi_rready            : in std_logic;
         -- Write Address Channel 
-        awAddrIn                : in std_logic_vector(ADDR_WIDTH - 1 downto 0);
-        awValidIn               : in std_logic;
-        awReadyOut              : out std_logic;
+        s_axi_awaddr            : in std_logic_vector(ADDR_WIDTH - 1 downto 0);
+        s_axi_awvalid           : in std_logic;
+        s_axi_awready           : out std_logic;
         -- Write Data Channel
-        wValidIn                : in std_logic;
-        wDataIn                 : in std_logic_vector(DATA_WIDTH - 1 downto 0);
-        wStrbIn                 : in std_logic_vector(STRB_WIDTH - 1 downto 0);
-        wReadyOut               : out std_logic;
+        s_axi_wvalid            : in std_logic;
+        s_axi_wdata             : in std_logic_vector(DATA_WIDTH - 1 downto 0);
+        s_axi_wstrb             : in std_logic_vector(STRB_WIDTH - 1 downto 0);
+        s_axi_wready            : out std_logic;
         -- Write Response Channel 
-        bRespOut                : out std_logic_vector(RESP_WIDTH - 1 downto 0);
-        bValidOut               : out std_logic;
-        bReadyIn                : in std_logic;
+        s_axi_bresp             : out std_logic_vector(RESP_WIDTH - 1 downto 0);
+        s_axi_bvalid            : out std_logic;
+        s_axi_bready            : in std_logic;
         ---------------------------------------
         -- AXI RX Data Stream 
         ---------------------------------------
@@ -62,6 +62,13 @@ entity MAC is
         tx_s_axis_tvalid        : in std_logic;
         tx_s_axis_tready        : out std_logic;
         tx_s_axis_tlast         : in std_logic;
+        ---------------------------------------
+        -- PHY MDIO signals
+        ---------------------------------------
+        mdio_mdc_out            : out std_logic;
+        mdio_data_out           : out std_logic;
+        mdio_data_in            : in std_logic;
+        mdio_data_tri           : out std_logic;
         ---------------------------------------
         -- MII PHY interface
         ---------------------------------------
@@ -200,5 +207,86 @@ begin
             rx_er           => rmii_rx_er
         );
     end generate gen_rmii_interface;
+
+    -- MDIO controler and MAC config regs
+    gen_mdio_and_ctrl : if (TRUE) generate
+
+        signal mdio_start           : std_logic;
+        signal mdio_write           : std_logic;
+        signal mdio_phy_addr        : std_logic_vector(4 downto 0);
+        signal mdio_reg_addr        : std_logic_vector(4 downto 0);
+        signal reg_mdio_data_in     : std_logic_vector(15 downto 0);
+        signal reg_mdio_data_out    : std_logic_vector(15 downto 0);
+        signal mdio_data_valid      : std_logic;
+        signal mdio_ctrl_busy            : std_logic;
+
+    begin 
+        ------------------------------------------------------------------
+        -- MDIO Controller
+        ------------------------------------------------------------------
+        MDIO_controller_inst : entity work.MDIO_controller(rtl)
+        port map (
+            clk             => clk,
+            -- Signals to phy
+            mdio_mdc        => mdio_mdc_out,
+            mdio_data_out   => mdio_data_out,
+            mdio_data_in    => mdio_data_in,
+            mdio_data_tri   => mdio_data_tri,
+            -- Signals to MAC
+            start           => mdio_start,
+            wr              => mdio_write,
+            phy_addr        => mdio_phy_addr,
+            reg_addr        => mdio_reg_addr,
+            data_in         => reg_mdio_data_in,
+            data_out        => reg_mdio_data_out,
+            data_out_valid  => mdio_data_valid,
+            busy_out        => mdio_ctrl_busy
+        );
+    
+        ------------------------------------------------------------------
+        -- MAC Ctrl / Status Regs
+        ------------------------------------------------------------------
+        MAC_registers_inst : entity work.MAC_registers(rtl)
+        port map (
+            clk             => clk,
+            rstn			=> s_axi_aresetn,
+            --------------------------------------------------------------
+            -- MDIO signals
+            --------------------------------------------------------------
+            mdio_phy_addr   => mdio_phy_addr,
+            mdio_reg_addr   => mdio_reg_addr,
+            mdio_data_out	=> reg_mdio_data_in,
+            mdio_write		=> mdio_write,
+            mdio_start		=> mdio_start,
+            mdio_data_in	=> reg_mdio_data_out,
+            mdio_din_valid	=> mdio_data_valid,
+            mdio_busy_in    => mdio_ctrl_busy,
+            ------------------------------------------------------------------------------
+            -- AXI lite interface
+            ------------------------------------------------------------------------------
+            -- Address write channel
+            S_AXI_AWADDR	=> s_axi_awaddr,
+            S_AXI_AWVALID	=> s_axi_awvalid,
+            S_AXI_AWREADY	=> s_axi_awready,
+            -- Write channel
+            S_AXI_WDATA		=> s_axi_wdata,
+            S_AXI_WSTRB		=> s_axi_wstrb,
+            S_AXI_WVALID	=> s_axi_wvalid,
+            S_AXI_WREADY	=> s_axi_wready,
+            -- Write response channel
+            S_AXI_BRESP		=> s_axi_bresp,
+            S_AXI_BVALID	=> s_axi_bvalid,
+            S_AXI_BREADY	=> s_axi_bready,
+            -- Read address channel
+            S_AXI_ARADDR	=> s_axi_araddr,
+            S_AXI_ARVALID	=> s_axi_arvalid,
+            S_AXI_ARREADY	=> s_axi_arready,
+            -- Read channel
+            S_AXI_RDATA		=> s_axi_rdata,
+            S_AXI_RRESP		=> s_axi_rresp,
+            S_AXI_RVALID	=> s_axi_rvalid,
+            S_AXI_RREADY	=> s_axi_rready
+        );
+    end generate gen_mdio_and_ctrl;
 
 end architecture rtl;
