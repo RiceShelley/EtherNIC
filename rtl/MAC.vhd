@@ -23,29 +23,29 @@ entity MAC is
         ---------------------------------------
         -- AXI Lite Slave 
         ---------------------------------------
-        aResetn                 : in std_logic;
+        s_axi_aresetn           : in std_logic;
         -- Read Address Channel
-        arAddrIn                : in std_logic_vector(ADDR_WIDTH - 1 downto 0);
-        arValidIn               : in std_logic;
-        arReadyOut              : out std_logic;
+        s_axi_araddr            : in std_logic_vector(ADDR_WIDTH - 1 downto 0);
+        s_axi_arvalid           : in std_logic;
+        s_axi_arready           : out std_logic;
         -- Read Data Channel
-        rDataOut                : out std_logic_vector(DATA_WIDTH - 1 downto 0);
-        rRespOut                : out std_logic_vector(RESP_WIDTH - 1 downto 0);
-        rValidOut               : out std_logic;
-        rReadyOut               : in std_logic;
+        s_axi_rdata             : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+        s_axi_rresp             : out std_logic_vector(RESP_WIDTH - 1 downto 0);
+        s_axi_rvalid            : out std_logic;
+        s_axi_rready            : in std_logic;
         -- Write Address Channel 
-        awAddrIn                : in std_logic_vector(ADDR_WIDTH - 1 downto 0);
-        awValidIn               : in std_logic;
-        awReadyOut              : out std_logic;
+        s_axi_awaddr            : in std_logic_vector(ADDR_WIDTH - 1 downto 0);
+        s_axi_awvalid           : in std_logic;
+        s_axi_awready           : out std_logic;
         -- Write Data Channel
-        wValidIn                : in std_logic;
-        wDataIn                 : in std_logic_vector(DATA_WIDTH - 1 downto 0);
-        wStrbIn                 : in std_logic_vector(STRB_WIDTH - 1 downto 0);
-        wReadyOut               : out std_logic;
+        s_axi_wvalid            : in std_logic;
+        s_axi_wdata             : in std_logic_vector(DATA_WIDTH - 1 downto 0);
+        s_axi_wstrb             : in std_logic_vector(STRB_WIDTH - 1 downto 0);
+        s_axi_wready            : out std_logic;
         -- Write Response Channel 
-        bRespOut                : out std_logic_vector(RESP_WIDTH - 1 downto 0);
-        bValidOut               : out std_logic;
-        bReadyIn                : in std_logic;
+        s_axi_bresp             : out std_logic_vector(RESP_WIDTH - 1 downto 0);
+        s_axi_bvalid            : out std_logic;
+        s_axi_bready            : in std_logic;
         ---------------------------------------
         -- AXI RX Data Stream 
         ---------------------------------------
@@ -62,6 +62,13 @@ entity MAC is
         tx_s_axis_tvalid        : in std_logic;
         tx_s_axis_tready        : out std_logic;
         tx_s_axis_tlast         : in std_logic;
+        ---------------------------------------
+        -- PHY MDIO signals
+        ---------------------------------------
+        mdio_mdc_out            : out std_logic;
+        mdio_data_out           : out std_logic;
+        mdio_data_in            : in std_logic;
+        mdio_data_tri           : out std_logic;
         ---------------------------------------
         -- MII PHY interface
         ---------------------------------------
@@ -201,7 +208,6 @@ begin
         );
     end generate gen_rmii_interface;
 
-<<<<<<< HEAD
     -- MDIO controler and MAC config regs
     gen_mdio_and_ctrl : if (TRUE) generate
 
@@ -283,6 +289,4 @@ begin
         );
     end generate gen_mdio_and_ctrl;
 
-=======
->>>>>>> added rmii <- this def has a bug or 2
 end architecture rtl;
