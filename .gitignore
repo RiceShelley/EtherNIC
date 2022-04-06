@@ -1,5 +1,8 @@
 *.xml
 *.ghw
+*.log
+*.jou
+*.str
 sim/*/*.cf
 sim/*/__pycache__
 sim/*/sim_build
