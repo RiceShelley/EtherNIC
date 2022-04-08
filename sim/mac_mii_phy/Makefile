@@ -5,6 +5,7 @@ VHDL_SOURCES = \
 $(PWD)/../../rtl/MAC_pack.vhd \
 $(PWD)/../../rtl/eth_pack.vhd \
 $(PWD)/../../rtl/math_pack.vhd \
+$(PWD)/../../rtl/skid_buffer.vhd \
 $(PWD)/../../rtl/simple_pipe.vhd \
 $(PWD)/../../rtl/async_fifo.vhd \
 $(PWD)/../../rtl/sync_fifo.vhd \
