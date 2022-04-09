@@ -114,7 +114,7 @@ async def mac_standard_rx_test(dut):
     while (await config.read_dword(0x000C)) != 0:
         await Timer(30, 'us')
 
-    trials = 5
+    trials = 0
     for _ in range(0, trials):
         # Create random packet
         random_data = ''.join(random.choice(string.ascii_letters) for i in range(random.randrange(0, 1000)))

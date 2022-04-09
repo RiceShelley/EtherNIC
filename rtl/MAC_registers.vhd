@@ -244,7 +244,7 @@ begin
 			when b"00" =>
 				reg_data_out <= mdio_config;
 			when b"01" =>
-				reg_data_out <= mdio_data_in_reg;
+				reg_data_out <= x"0000" & mdio_data_in_reg;
 			when b"11" =>
 				reg_data_out <= mdio_status;
 			when others =>

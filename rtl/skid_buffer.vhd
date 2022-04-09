@@ -4,7 +4,8 @@ use ieee.numeric_std.all;
 
 entity skid_buffer is
     generic (
-        DATA_WIDTH : natural := 8
+        DATA_WIDTH : natural := 8;
+        ASYNC_INPUT : string := "FALSE"
     );
     port (
         clk : in std_logic;
@@ -26,7 +27,11 @@ architecture rtl of skid_buffer is
     signal output_valid_r : std_logic;
 
     signal data_buffer_wren : std_logic := '0';
+
     signal data_buffer_out : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    
+    attribute ASYNC_REG : string;
+    attribute ASYNC_REG of data_buffer_out : signal is ASYNC_INPUT;
 
     signal data_out_wren : std_logic := '0';
     signal use_buffered_data : std_logic := '0';

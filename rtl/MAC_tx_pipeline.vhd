@@ -43,11 +43,15 @@ architecture rtl of MAC_tx_pipeline is
     signal empty        : std_logic_vector(PIPELINE_ELEM_CNT - 1 downto 0);
     signal frame_ready  : std_logic_vector(PIPELINE_ELEM_CNT - 1 downto 0);
 
+    signal skid_m_axis_tdata    : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
+    signal skid_m_axis_tvalid   : std_logic;
+    signal skid_m_axis_tready   : std_logic;
 begin
 
     ---------------------------------------------------------------
     -- Frame Builder Pipeline Writer
     ---------------------------------------------------------------
+    empty <= not fpb_out_axis_tvalid;
     fb_pipeline_writer_inst : entity work.fb_pipeline_writer(rtl)
     generic map (
         PIPELINE_ELEM_CNT => PIPELINE_ELEM_CNT
@@ -76,7 +80,6 @@ begin
         port map (
             clk                 => clk,
             rst                 => rst,
-            empty_out           => empty(i),
             frame_ready_out     => frame_ready(i),
             -- AXI Data Stream Slave
             s_axis_tdata    => fpb_in_axis_tdata(i),
@@ -98,7 +101,6 @@ begin
         PIPELINE_ELEM_CNT => PIPELINE_ELEM_CNT
     ) port map (
         clk             => clk,
-        empty_in        => empty,
         ready_in        => frame_ready,
         tx_busy_in      => tx_busy_in,
         -- AXI Data Stream Slave
@@ -106,9 +108,23 @@ begin
         s_axis_tvalid   => fpb_out_axis_tvalid,
         s_axis_tready   => fpb_out_axis_tready,
         -- AXI Data Stream Master
-        m_axis_tdata    => m_axis_tdata,
-        m_axis_tvalid   => m_axis_tvalid,
-        m_axis_tready   => m_axis_tready
+        m_axis_tdata    => skid_m_axis_tdata,
+        m_axis_tvalid   => skid_m_axis_tvalid,
+        m_axis_tready   => skid_m_axis_tready
+    );
+
+    tx_pipe_out_skid : entity work.skid_buffer(rtl)
+    generic map (
+        DATA_WIDTH      => m_axis_tdata'length
+    ) port map (
+        clk             => clk,
+        clr             => rst,
+        input_valid     => skid_m_axis_tvalid,
+        input_ready     => skid_m_axis_tready,
+        input_data      => skid_m_axis_tdata,
+        output_valid    => m_axis_tvalid,
+        output_ready    => m_axis_tready,
+        output_data     => m_axis_tdata
     );
 
 end architecture rtl;

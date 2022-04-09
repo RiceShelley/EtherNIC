@@ -27,7 +27,11 @@ end entity MAC_rx_pipeline;
 architecture rtl of MAC_rx_pipeline is
     signal layer_two_eth_tdata  : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
     signal layer_two_eth_tvalid : std_logic;
-    signal layer_two_eth_tready : std_logic;
+    signal layer_two_eth_tready : std_logic := '1';
+
+    signal skid_layer_two_eth_tdata  : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
+    signal skid_layer_two_eth_tvalid : std_logic;
+    signal skid_layer_two_eth_tready : std_logic;
 
     signal frame_length     : unsigned(LENGTH_WIDTH - 1 downto 0);
     signal frame_length_reg : unsigned(LENGTH_WIDTH - 1 downto 0);
@@ -62,9 +66,24 @@ begin
         s_axis_tvalid       => s_axis_tvalid,
         s_axis_tready       => s_axis_tready,
         -- AXI Stream Master
-        m_axis_tdata        => layer_two_eth_tdata,
-        m_axis_tvalid       => layer_two_eth_tvalid,
-        m_axis_tready       => layer_two_eth_tready
+        m_axis_tdata        => skid_layer_two_eth_tdata,
+        m_axis_tvalid       => skid_layer_two_eth_tvalid,
+        m_axis_tready       => skid_layer_two_eth_tready
+    );
+
+    l1_dec_out_skid_buff : entity work.skid_buffer(rtl)
+    generic map (
+        DATA_WIDTH => layer_two_eth_tdata'length
+    )
+    port map (
+        clk             => clk,
+        clr             => rst,
+        input_valid     => skid_layer_two_eth_tvalid,
+        input_ready     => skid_layer_two_eth_tready,
+        input_data      => skid_layer_two_eth_tdata,
+        output_valid    => layer_two_eth_tvalid,
+        output_ready    => layer_two_eth_tready,
+        output_data     => layer_two_eth_tdata
     );
 
     ------------------------------------------------------------------

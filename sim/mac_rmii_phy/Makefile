@@ -1,5 +1,5 @@
 SIM=ghdl
-SIM_ARGS += --wave=wave.ghw -gGEN_RMII=TRUE
+SIM_ARGS += --wave=wave.ghw
 TOPLEVEL_LANG=vhdl
 VHDL_SOURCES = \
 $(PWD)/../../rtl/MAC_pack.vhd \
@@ -22,7 +22,7 @@ $(PWD)/../../rtl/MAC_registers.vhd \
 $(PWD)/../../rtl/MDIO_controller.vhd \
 $(PWD)/../../rtl/MAC_rx_pipeline.vhd \
 $(PWD)/../../rtl/MAC_tx_pipeline.vhd \
-$(PWD)/../../rtl/MAC.vhd 
-TOPLEVEL = mac
+$(PWD)/../../rtl/MAC_RMII.vhd 
+TOPLEVEL = mac_rmii
 MODULE = mac_sim
 include $(shell cocotb-config --makefiles)/Makefile.sim
