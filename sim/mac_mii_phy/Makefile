@@ -1,10 +1,11 @@
 SIM=ghdl
-SIM_ARGS += --wave=wave.ghw -gGEN_MII=TRUE
+SIM_ARGS += --wave=wave.ghw
 TOPLEVEL_LANG=vhdl
 VHDL_SOURCES = \
 $(PWD)/../../rtl/MAC_pack.vhd \
 $(PWD)/../../rtl/eth_pack.vhd \
 $(PWD)/../../rtl/math_pack.vhd \
+$(PWD)/../../rtl/skid_buffer.vhd \
 $(PWD)/../../rtl/simple_pipe.vhd \
 $(PWD)/../../rtl/async_fifo.vhd \
 $(PWD)/../../rtl/sync_fifo.vhd \
@@ -21,8 +22,8 @@ $(PWD)/../../rtl/MAC_registers.vhd \
 $(PWD)/../../rtl/MDIO_controller.vhd \
 $(PWD)/../../rtl/MAC_rx_pipeline.vhd \
 $(PWD)/../../rtl/MAC_tx_pipeline.vhd \
-$(PWD)/../../rtl/MAC.vhd 
-TOPLEVEL = mac
+$(PWD)/../../rtl/MAC_MII.vhd 
+TOPLEVEL = mac_mii
 MODULE = mac_sim
 #TESTCASE = mac_flood_tx_pipe
 include $(shell cocotb-config --makefiles)/Makefile.sim

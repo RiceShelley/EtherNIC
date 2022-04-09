@@ -69,6 +69,10 @@ architecture rtl of MII_Phy_Interface is
     -- RX output fifo signals
     signal dout_fifo_full   : std_logic := '0';
     signal dout_fifo_empty  : std_logic := '0';
+
+    signal skid_m_axis_tdata    : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
+    signal skid_m_axis_tvalid   : std_logic;
+    signal skid_m_axis_tready   : std_logic;
    
     -- TX data fifo input signals
     signal din_fifo_empty : std_logic := '0';
@@ -137,7 +141,7 @@ begin
     -------------------------------------------------
     -- Sync packets from phy to sys clk domain
     -------------------------------------------------
-    m_axis_tvalid   <= (not dout_fifo_empty);
+    skid_m_axis_tvalid   <= (not dout_fifo_empty);
     fifo_wr_rx      <= '1' when (wr_rx_byte = '1' and rx_pkt_timeout = 0) else '0';
     async_dout_fifo : entity work.async_fifo(rtl)
     generic map (
@@ -151,9 +155,23 @@ begin
         full    => dout_fifo_full,
         -- Read port (System clk domain)
         rd_clk  => sys_clk,
-        rd_data => m_axis_tdata,
-        rd_en   => m_axis_tready,
+        rd_data => skid_m_axis_tdata,
+        rd_en   => skid_m_axis_tready,
         empty   => dout_fifo_empty
+    );
+
+    dout_skid : entity work.skid_buffer(rtl)
+    generic map (
+        DATA_WIDTH => rx_byte'length
+    ) port map (
+        clk             => sys_clk,
+        clr             => sys_rst,
+        input_valid     => skid_m_axis_tvalid,
+        input_ready     => skid_m_axis_tready,
+        input_data      => skid_m_axis_tdata,
+        output_valid    => m_axis_tvalid,
+        output_ready    => m_axis_tready,
+        output_data     => m_axis_tdata
     );
 
     -------------------------------------------------------------------------------------------

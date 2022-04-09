@@ -6,16 +6,14 @@ library work;
 use work.MAC_pack.all;
 use work.eth_pack.all;
 
-entity MAC is
+entity MAC_MII is
     generic (
         TX_UNFOLD_CNT       : natural := 2;
         ITR_WIDTH           : natural := 16;
         DATA_WIDTH          : natural := 32;
         ADDR_WIDTH          : natural := 32;
         STRB_WIDTH          : natural := 32 / 8;
-        RESP_WIDTH          : natural := 2;
-        GEN_MII             : boolean := FALSE;
-        GEN_RMII            : boolean := FALSE);
+        RESP_WIDTH          : natural := 2);
     port (
         clk                     : in std_logic;
         rst                     : in std_logic;
@@ -80,20 +78,11 @@ entity MAC is
         mii_rx_en               : in std_logic;
         mii_rx_er               : in std_logic;
         mii_rx_data             : in std_logic_vector(3 downto 0);
-        mii_rst_phy             : out std_logic := '0';
-        ---------------------------------------
-        -- RMII PHY interface
-        ---------------------------------------
-        rmii_clk                : in std_logic;
-        rmii_tx_en              : out std_logic := '0';
-        rmii_tx_data            : out std_logic_vector(1 downto 0);
-        rmii_rx_data            : in std_logic_vector(1 downto 0);
-        rmii_crs_dv             : in std_logic;
-        rmii_rx_er              : in std_logic
+        mii_rst_phy             : out std_logic := '0'
     );
-end entity MAC;
+end entity MAC_MII;
 
-architecture rtl of MAC is
+architecture rtl of MAC_MII is
     ---------------------------
     -- Phy interface signals
     ---------------------------
@@ -152,61 +141,32 @@ begin
     );
 
     ------------------------------------------------------------------
-    -- Phy interfaces
+    -- MII Phy interface
     ------------------------------------------------------------------
-    -- MII Phy
-    gen_mii_interface : if (GEN_MII = TRUE) generate
-        mii_interface_inst : entity work.MII_Phy_Interface(rtl)
-        port map (
-            sys_clk         => clk,
-            sys_rst         => rst,
-            tx_busy         => tx_busy,
-            rx_done         => rx_done,
-            -- AXI Stream Slave
-            s_axis_tdata    => tx_pipe_axis_tdata,
-            s_axis_tvalid   => tx_pipe_axis_tvalid,
-            s_axis_tready   => tx_pipe_axis_tready,
-            -- AXI Stream Master
-            m_axis_tdata    => rx_pipe_axis_tdata,
-            m_axis_tvalid   => rx_pipe_axis_tvalid,
-            m_axis_tready   => rx_pipe_axis_tready,
-            -- PHY signals 
-            tx_clk          => mii_tx_clk,
-            tx_en           => mii_tx_en,
-            tx_er           => mii_tx_er,
-            tx_data         => mii_tx_data,
-            rx_clk          => mii_rx_clk,
-            rx_en           => mii_rx_en,
-            rx_er           => mii_rx_er,
-            rx_data         => mii_rx_data
-        );
-    end generate gen_mii_interface;
-
-    -- RMII Phy
-    gen_rmii_interface : if (GEN_RMII = TRUE) generate
-        rmii_interface_inst : entity work.RMII_Phy_Interface(rtl)
-        port map (
-            sys_clk         => clk,
-            sys_rst         => rst,
-            tx_busy         => tx_busy,
-            rx_done         => rx_done,
-            -- AXI Stream Slave
-            s_axis_tdata    => tx_pipe_axis_tdata,
-            s_axis_tvalid   => tx_pipe_axis_tvalid,
-            s_axis_tready   => tx_pipe_axis_tready,
-            -- AXI Stream Master
-            m_axis_tdata    => rx_pipe_axis_tdata,
-            m_axis_tvalid   => rx_pipe_axis_tvalid,
-            m_axis_tready   => rx_pipe_axis_tready,
-            -- PHY signals 
-            ref_clk_50mhz   => rmii_clk,
-            tx_en           => rmii_tx_en,
-            tx_data         => rmii_tx_data,
-            rx_data         => rmii_rx_data,
-            crs_dv          => rmii_crs_dv,
-            rx_er           => rmii_rx_er
-        );
-    end generate gen_rmii_interface;
+    mii_interface_inst : entity work.MII_Phy_Interface(rtl)
+    port map (
+        sys_clk         => clk,
+        sys_rst         => rst,
+        tx_busy         => tx_busy,
+        rx_done         => rx_done,
+        -- AXI Stream Slave
+        s_axis_tdata    => tx_pipe_axis_tdata,
+        s_axis_tvalid   => tx_pipe_axis_tvalid,
+        s_axis_tready   => tx_pipe_axis_tready,
+        -- AXI Stream Master
+        m_axis_tdata    => rx_pipe_axis_tdata,
+        m_axis_tvalid   => rx_pipe_axis_tvalid,
+        m_axis_tready   => rx_pipe_axis_tready,
+        -- PHY signals 
+        tx_clk          => mii_tx_clk,
+        tx_en           => mii_tx_en,
+        tx_er           => mii_tx_er,
+        tx_data         => mii_tx_data,
+        rx_clk          => mii_rx_clk,
+        rx_en           => mii_rx_en,
+        rx_er           => mii_rx_er,
+        rx_data         => mii_rx_data
+    );
 
     -- MDIO controler and MAC config regs
     gen_mdio_and_ctrl : if (TRUE) generate
