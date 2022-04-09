@@ -66,11 +66,15 @@ architecture rtl of RMII_Phy_Interface is
     -- TX data fifo input signals
     signal din_fifo_empty : std_logic := '0';
     signal din_fifo_full  : std_logic := '0';
-
+        
     -- TX data fifo output signals
     signal phy_tx_fifo_data     : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
     signal phy_tx_fifo_ne       : std_logic;
     signal phy_tx_fifo_rd_en    : std_logic;
+    
+    signal skid_phy_tx_fifo_data    : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
+    signal skid_phy_tx_fifo_ne      : std_logic;
+    signal skid_phy_tx_fifo_rd_en   : std_logic;
 
     -- TX write process signals
     type tx_fsm_t is (WAIT_FOR_PKT, FIRST_DIBIT, SECOND_DIBIT, THIRD_DIBIT, FOURTH_DIBIT, INTER_PKT_GAP);
@@ -187,8 +191,8 @@ begin
     ----------------------------------------------------------
     -- Sync tx packets from system clock to phy clock domain
     ----------------------------------------------------------
-    phy_tx_fifo_ne  <= not din_fifo_empty;
-    s_axis_tready   <= not din_fifo_full;
+    skid_phy_tx_fifo_ne <= not din_fifo_empty;
+    s_axis_tready       <= not din_fifo_full;
 
     async_din_fifo : entity work.async_fifo(rtl)
     generic map (
@@ -202,11 +206,25 @@ begin
         full    => din_fifo_full,
         -- Read port (tx phy clk domain)
         rd_clk  => ref_clk_50mhz,
-        rd_data => phy_tx_fifo_data,
-        rd_en   => phy_tx_fifo_rd_en,
+        rd_data => skid_phy_tx_fifo_data,
+        rd_en   => skid_phy_tx_fifo_rd_en,
         empty   => din_fifo_empty
     );
 
+    din_skid : entity work.skid_buffer(rtl)
+    generic map (
+        DATA_WIDTH => rx_byte'length,
+        ASYNC_INPUT => "TRUE"
+    ) port map (
+        clk             => sys_clk,
+        clr             => sys_rst,
+        input_valid     => skid_phy_tx_fifo_ne,
+        input_ready     => skid_phy_tx_fifo_rd_en,
+        input_data      => skid_phy_tx_fifo_data,
+        output_valid    => phy_tx_fifo_ne,
+        output_ready    => phy_tx_fifo_rd_en,
+        output_data     => phy_tx_fifo_data
+    );
     -------------------------
     -- Write packets to phy
     -------------------------
