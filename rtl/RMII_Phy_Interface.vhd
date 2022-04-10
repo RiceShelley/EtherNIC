@@ -7,19 +7,7 @@ use work.MAC_pack.all;
 use work.eth_pack.all;
 use work.math_pack.all;
 
-------------------------------------------------------
--- NAME: MII_Phy_Interface 
--- 
--- DESCRIPTION: FIFO based interface to a MII Phy.
--- FIFO's are interfaced with a simple two way handshake
--- defined in the MAC_pack package. The Phy link speed
--- may be set to 25MHz for 100Mb or 2.5 MHz for 10Mb.
---
--- NOTES: sys_clk frequency must be greater than or 
--- equal to tx_clk frequency.
-------------------------------------------------------
-
-entity MII_Phy_Interface is 
+entity RMII_Phy_Interface is
     port (
         ----------------------------------
         -- Signals in system clock domain
@@ -37,31 +25,32 @@ entity MII_Phy_Interface is
         m_axis_tvalid   : out std_logic;
         m_axis_tready   : in std_logic;
         ----------------------------------
-        -- Signals in MII clock domain
+        -- Signals in RMII clock domain
         ----------------------------------
+        ref_clk_50mhz   : in std_logic;
         -- TX signals
-        tx_clk          : in std_logic := '0';
         tx_en           : out std_logic := '0';
-        tx_er           : out std_logic := '0';
-        tx_data         : out std_logic_vector(3 downto 0) := (others => '0');
-        -- RX signals 
-        rx_clk          : in std_logic := '0';
-        rx_en           : in std_logic := '0';
-        rx_er           : in std_logic := '0';
-        rx_data         : in std_logic_vector(3 downto 0) := (others => '0')
+        tx_data         : out std_logic_vector(1 downto 0);
+        -- RX signals
+        rx_data         : in std_logic_vector(1 downto 0);
+        crs_dv          : in std_logic;
+        rx_er           : in std_logic
     );
-end entity MII_Phy_Interface;
+end entity RMII_Phy_Interface;
 
-architecture rtl of MII_Phy_Interface is
-    -- Inter packet gap is 12 bytes or 24 tx_clk cycles
-    constant INTER_PKT_GAP_CYCLES   : natural := INTER_PKT_GAP_SIZE * 2;
+architecture rtl of RMII_Phy_Interface is
+
+    constant INTER_PKT_GAP_CYCLES   : natural := INTER_PKT_GAP_SIZE * 4;
     constant TIMEOUT_MAX            : natural := 8;
+    constant DIBIT_COUNT            : natural := 4;
 
     -- RX recv process signals
+    type rx_fsm_t is (IDLE, BUSY);
+    signal rx_fsm           : rx_fsm_t := IDLE;
+    signal rx_dibit_cnt     : unsigned(clog2(DIBIT_COUNT) - 1 downto 0) := (others => '0');
     signal rx_byte          : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0) := (others => '0');
-    signal got_rx_byte      : std_logic := '0';
-    signal wr_rx_byte       : std_logic := '0';
     signal fifo_wr_rx       : std_logic := '0';
+    signal wr_rx_byte       : std_logic := '0';
     signal rx_pkt_timeout   : unsigned(clog2(TIMEOUT_MAX) - 1 downto 0) := (others => '0');
     signal rx_active_pkt    : std_logic := '0';
     signal phy_rx_pkt_done  : std_logic := '0';
@@ -73,58 +62,79 @@ architecture rtl of MII_Phy_Interface is
     signal skid_m_axis_tdata    : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
     signal skid_m_axis_tvalid   : std_logic;
     signal skid_m_axis_tready   : std_logic;
-   
+
     -- TX data fifo input signals
     signal din_fifo_empty : std_logic := '0';
     signal din_fifo_full  : std_logic := '0';
-
+        
     -- TX data fifo output signals
     signal phy_tx_fifo_data     : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
     signal phy_tx_fifo_ne       : std_logic;
     signal phy_tx_fifo_rd_en    : std_logic;
+    
+    signal skid_phy_tx_fifo_data    : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
+    signal skid_phy_tx_fifo_ne      : std_logic;
+    signal skid_phy_tx_fifo_rd_en   : std_logic;
 
     -- TX write process signals
-    type tx_fsm_t is (WAIT_FOR_PKT, FIRST_NIBBLE, SECOND_NIBBLE, INTER_PKT_GAP);
+    type tx_fsm_t is (WAIT_FOR_PKT, FIRST_DIBIT, SECOND_DIBIT, THIRD_DIBIT, FOURTH_DIBIT, INTER_PKT_GAP);
     signal tx_fsm               : tx_fsm_t := WAIT_FOR_PKT;
     signal phy_clk_tx_busy      : std_logic := '0';
     signal tx_inter_pkt_gap_cnt : unsigned(clog2(INTER_PKT_GAP_CYCLES) downto 0) := (others => '0');
+    signal tx_byte              : std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0) := (others => '0');
 
 begin
+
     -------------------------------------------------------------------------------------------
-    --                                      MII RX                                           --
+    --                                     RMII RX                                           --
     -------------------------------------------------------------------------------------------
 
     -------------------------------------------------
     -- Read packets from phy
     -------------------------------------------------
-    proc_rx : process(rx_clk) 
+    proc_rx : process(ref_clk_50mhz) 
     begin
-        if rising_edge(rx_clk) then
-            if rx_en = '1' then
-                got_rx_byte             <= not got_rx_byte;
-                wr_rx_byte              <= got_rx_byte;
-                rx_byte                 <= rx_data & rx_byte(7 downto 4);
-                rx_pkt_timeout          <= (others => '0');
-                rx_active_pkt           <= '1';
-                phy_rx_pkt_done         <= '0';
-            else
-                if (rx_active_pkt = '1') then
-                    wr_rx_byte      <= '0';
-                    if (rx_pkt_timeout = TIMEOUT_MAX - 1) then
-                        rx_active_pkt   <= '0';
-                        phy_rx_pkt_done <= '1';
-                    else
-                        rx_pkt_timeout <= rx_pkt_timeout + 1;
+        if rising_edge(ref_clk_50mhz) then
+            wr_rx_byte <= '0';
+            case (rx_fsm) is
+                when IDLE =>
+                    if (crs_dv = '1' and rx_data = "01") then
+                        rx_byte                 <= rx_data & rx_byte(7 downto 2);
+                        rx_dibit_cnt            <= to_unsigned(1, rx_dibit_cnt'length);
+                        rx_fsm                  <= BUSY;
                     end if;
-                else
-                    got_rx_byte     <= '0';
-                    wr_rx_byte      <= '0';
-                    rx_pkt_timeout  <= (others => '0');
-                end if;
-            end if;
+                when BUSY =>
+                    if (crs_dv = '1') then
+                        if (rx_dibit_cnt = DIBIT_COUNT - 1) then
+                            rx_dibit_cnt <= (others => '0');
+                            wr_rx_byte <= '1';
+                        else
+                            rx_dibit_cnt <= rx_dibit_cnt + 1;
+                        end if;
+                        rx_byte                 <= rx_data & rx_byte(7 downto 2);
+                        rx_pkt_timeout          <= (others => '0');
+                        rx_active_pkt           <= '1';
+                        phy_rx_pkt_done         <= '0';
+                    else
+                        rx_dibit_cnt <= (others => '0');
+                        if (rx_active_pkt = '1') then
+                            if (rx_pkt_timeout = TIMEOUT_MAX - 1) then
+                                rx_active_pkt   <= '0';
+                                phy_rx_pkt_done <= '1';
+                            else
+                                rx_pkt_timeout <= rx_pkt_timeout + 1;
+                            end if;
+                        else
+                            rx_pkt_timeout  <= (others => '0');
+                            rx_fsm          <= IDLE;
+                        end if;
+                    end if;
+                    when others =>
+                        rx_fsm <= IDLE;
+            end case;
         end if;
     end process proc_rx;
-    
+
     -------------------------------------------------
     -- Sync phy_rx_pkt_done signal to sys clk domain
     -------------------------------------------------
@@ -149,7 +159,7 @@ begin
         DEPTH       => 32
     ) port map (
         -- Write port (rx phy clk domain)
-        wr_clk  => rx_clk,
+        wr_clk  => ref_clk_50mhz,
         wr_data => rx_byte,
         wr_en   => fifo_wr_rx,
         full    => dout_fifo_full,
@@ -177,12 +187,12 @@ begin
     -------------------------------------------------------------------------------------------
     --                                      MII TX                                           --
     -------------------------------------------------------------------------------------------
-    
+
     ----------------------------------------------------------
     -- Sync tx packets from system clock to phy clock domain
     ----------------------------------------------------------
-    phy_tx_fifo_ne  <= not din_fifo_empty;
-    s_axis_tready   <= not din_fifo_full;
+    skid_phy_tx_fifo_ne <= not din_fifo_empty;
+    s_axis_tready       <= not din_fifo_full;
 
     async_din_fifo : entity work.async_fifo(rtl)
     generic map (
@@ -195,41 +205,67 @@ begin
         wr_en   => s_axis_tvalid,
         full    => din_fifo_full,
         -- Read port (tx phy clk domain)
-        rd_clk  => tx_clk,
-        rd_data => phy_tx_fifo_data,
-        rd_en   => phy_tx_fifo_rd_en,
+        rd_clk  => ref_clk_50mhz,
+        rd_data => skid_phy_tx_fifo_data,
+        rd_en   => skid_phy_tx_fifo_rd_en,
         empty   => din_fifo_empty
     );
 
+    din_skid : entity work.skid_buffer(rtl)
+    generic map (
+        DATA_WIDTH => rx_byte'length,
+        ASYNC_INPUT => "TRUE"
+    ) port map (
+        clk             => sys_clk,
+        clr             => sys_rst,
+        input_valid     => skid_phy_tx_fifo_ne,
+        input_ready     => skid_phy_tx_fifo_rd_en,
+        input_data      => skid_phy_tx_fifo_data,
+        output_valid    => phy_tx_fifo_ne,
+        output_ready    => phy_tx_fifo_rd_en,
+        output_data     => phy_tx_fifo_data
+    );
     -------------------------
     -- Write packets to phy
     -------------------------
-    tx_data <= phy_tx_fifo_data(3 downto 0) when (tx_fsm = FIRST_NIBBLE) else phy_tx_fifo_data(7 downto 4);
-    tx_en <= phy_tx_fifo_ne when (tx_fsm /= WAIT_FOR_PKT and tx_fsm /= INTER_PKT_GAP) else '0';
-
-    -- When packet is available in fifo process reads a new byte every 2 tx_clk cycles until the FIFO is empty
-    proc_write_tx_to_phy : process(tx_clk)
+    -- When packet is available in fifo process reads a new byte every 2 ref_clk_50mhz cycles until the FIFO is empty
+    proc_write_tx_to_phy : process(ref_clk_50mhz)
     begin
-        if rising_edge(tx_clk) then
-            phy_tx_fifo_rd_en <= '0';
-            tx_inter_pkt_gap_cnt <= (others => '0');
+        if rising_edge(ref_clk_50mhz) then
+            phy_tx_fifo_rd_en       <= '0';
+            tx_en                   <= '0';
+            tx_inter_pkt_gap_cnt    <= (others => '0');
             case tx_fsm is
                 when WAIT_FOR_PKT =>
                     if phy_tx_fifo_ne = '1' then
                         -- Packet is available
-                        tx_fsm <= FIRST_NIBBLE;
+                        tx_fsm  <= FIRST_DIBIT;
+                        tx_byte <= phy_tx_fifo_data;
                     end if;
-                when FIRST_NIBBLE =>
+                when FIRST_DIBIT =>
                     if phy_tx_fifo_ne = '0' then
                         -- Finished reading / writing packet
                         tx_fsm <= INTER_PKT_GAP;
                     else
                         -- Read next byte
                         phy_tx_fifo_rd_en <= '1';
-                        tx_fsm <= SECOND_NIBBLE;
+                        tx_en   <= '1';
+                        tx_data <= tx_byte(1 downto 0);
+                        tx_fsm  <= SECOND_DIBIT;
                     end if;
-                when SECOND_NIBBLE =>
-                    tx_fsm <= FIRST_NIBBLE;
+                when SECOND_DIBIT =>
+                    tx_en   <= '1';
+                    tx_data <= tx_byte(3 downto 2);
+                    tx_fsm  <= THIRD_DIBIT;
+                when THIRD_DIBIT =>
+                    tx_en   <= '1';
+                    tx_data <= tx_byte(5 downto 4);
+                    tx_fsm  <= FOURTH_DIBIT;
+                when FOURTH_DIBIT =>
+                    tx_en   <= '1';
+                    tx_data <= tx_byte(7 downto 6);
+                    tx_byte <= phy_tx_fifo_data;
+                    tx_fsm  <= FIRST_DIBIT;
                 when INTER_PKT_GAP =>
                     if tx_inter_pkt_gap_cnt = INTER_PKT_GAP_CYCLES then
                         tx_fsm <= WAIT_FOR_PKT;
@@ -246,7 +282,7 @@ begin
     phy_clk_tx_busy <= '1' when (tx_fsm /= WAIT_FOR_PKT) else '0';
    
     -------------------------------------------------
-    -- Sync phy_clk_tx_busy signal to sys clk domain
+    -- Sync ref_clk_50mhz signal to sys clk domain
     -------------------------------------------------
     sync_tx_busy_signal : entity work.simple_pipe(rtl)
     generic map (

@@ -57,7 +57,7 @@ begin
                     if (pass_data = '1') then
                         -- Frame start is valid go to next state
                         frame_start_seq <= (others => '0');
-                        axis_ready_reg   <= '0';
+                        axis_ready_reg  <= '0';
                         frame_start_out <= '1';
                         byte_cnt        <= (others => '0');
                         decode_state    <= GET_LENGTH;

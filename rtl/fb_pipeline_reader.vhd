@@ -13,7 +13,6 @@ entity fb_pipeline_reader is
     port (
         clk         : in std_logic;
         ready_in    : in std_logic_vector(PIPELINE_ELEM_CNT - 1 downto 0);
-        empty_in    : in std_logic_vector(PIPELINE_ELEM_CNT - 1 downto 0);
         tx_busy_in  : in std_logic;
         -- AXI Data Stream Slave
         s_axis_tdata        : in t_axis_data_array(PIPELINE_ELEM_CNT - 1 downto 0);
@@ -40,7 +39,7 @@ architecture rtl of fb_pipeline_reader is
 begin
 
     m_axis_tdata    <= s_axis_tdata(to_integer(rd_addr));
-    m_axis_tvalid   <= '1' when (empty_in(to_integer(rd_addr)) = '0' and rstate = BUSY) else '0';
+    m_axis_tvalid   <= '1' when (s_axis_tvalid(to_integer(rd_addr)) = '1' and rstate = BUSY) else '0';
 
     -- Pass m_axis_tready to current slave when rstate is busy
     s_tready_proc : process(rd_addr, m_axis_tready, rstate) begin
@@ -59,11 +58,11 @@ begin
         if rising_edge(clk) then
             case rstate is
                 when IDLE =>
-                    if (ready_in(to_integer(rd_addr)) = '1' and empty_in(to_integer(rd_addr)) = '0') then
+                    if (ready_in(to_integer(rd_addr)) = '1' and s_axis_tvalid(to_integer(rd_addr)) = '1') then
                         rstate <= BUSY;
                     end if;
                 when BUSY => 
-                    if (empty_in(to_integer(rd_addr)) = '1') then
+                    if (s_axis_tvalid(to_integer(rd_addr)) = '0') then
                         if (rd_addr /= PIPELINE_ELEM_CNT - 1) then
                             rd_addr <= rd_addr + 1;
                         else
