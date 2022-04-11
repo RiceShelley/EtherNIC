@@ -91,9 +91,6 @@ begin
                             fcs_byte_cnt    <= (others => '0');
                             cc_state        <= APPEND;
                         end if;
-                    else
-                        -- TODO: Throw error
-                        cc_state <= IDLE;
                     end if;
                 when APPEND =>
                     if (fcs_byte_cnt /= FCS_SIZE) then

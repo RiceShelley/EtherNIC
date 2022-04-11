@@ -11,6 +11,7 @@ entity top is
     port (
         sys_clk                 : in std_logic;
         rst                     : in std_logic;
+        rstn_phy                : out std_logic;
         dout                    : out std_logic_vector(7 downto 0);
         ---------------------------------------
         -- AXI Lite Slave 
@@ -53,7 +54,14 @@ entity top is
         rmii_tx_data            : out std_logic_vector(1 downto 0);
         rmii_rx_data            : in std_logic_vector(1 downto 0);
         rmii_crs_dv             : in std_logic;
-        rmii_rx_er              : in std_logic
+        rmii_rx_er              : in std_logic;
+        ---------------------------------------
+        -- Camera signals 
+        ---------------------------------------
+        cam_pix_valid           : in std_logic;
+        cam_href                : in std_logic;
+        cam_vsync               : in std_logic;
+        cam_data_in             : in std_logic_vector(7 downto 0)
     );
 end entity top;
 
@@ -81,7 +89,31 @@ architecture rtl of top is
     signal send_pkt : std_logic;
     signal pkt_timer : unsigned(9 downto 0) := (others => '0');
 
+    signal new_vid_frame : std_logic;
+    signal new_vid_row : std_logic;
+
+    signal cam_axis_tdata    : std_logic_vector(7 downto 0);
+    signal cam_axis_tvalid   : std_logic;
+    signal cam_axis_tready   : std_logic;
+
+    --component clk_wiz_0
+    --port (
+    --    clk_in1     : in std_logic;
+    --    clk_out1    : out std_logic;
+    --    clk_out45   : out std_logic;
+    --    clk_10mhz   : out std_logic
+    --);
+    --end component;
 begin
+
+    rstn_phy <= '1';
+
+    --clk_wiz_inst : clk_wiz_0 port map (
+    --    clk_in1     => sys_clk,
+    --    clk_out1    => rmii_50mhz_clk,
+    --    clk_out45   => rmii_clk_out,
+    --    clk_10mhz   => cam_clk
+    --);
 
     capture_data_proc : process (sys_clk) begin
         if rising_edge(sys_clk) then
@@ -103,12 +135,33 @@ begin
     port map (
         clk             => sys_clk,
         rst             => rst,
-        send_pkt        => send_pkt,
-        s_axis_tdata    => tx_s_axis_tdata,
-        s_axis_tstrb    => tx_s_axis_tstrb,
-        s_axis_tvalid   => tx_s_axis_tvalid,
-        s_axis_tready   => tx_s_axis_tready,
-        s_axis_tlast    => tx_s_axis_tlast
+        send_pkt        => new_vid_row,
+        rst_cur_row     => new_vid_frame,
+        -- Camera data in
+        s_axis_tdata    => cam_axis_tdata,
+        s_axis_tvalid   => cam_axis_tvalid,
+        s_axis_tready   => cam_axis_tready,
+        -- UDP pkt out
+        m_axis_tdata    => tx_s_axis_tdata,
+        m_axis_tstrb    => tx_s_axis_tstrb,
+        m_axis_tvalid   => tx_s_axis_tvalid,
+        m_axis_tready   => tx_s_axis_tready,
+        m_axis_tlast    => tx_s_axis_tlast
+    );
+
+    Ov7670_reader_inst : entity work.Ov7670_reader(rtl)
+    port map (
+        clk             => sys_clk,
+        rst             => rst,
+        new_frame       => new_vid_frame,
+        new_row         => new_vid_row,
+        pix_valid       => cam_pix_valid,
+        href            => cam_href,
+        vsync           => cam_vsync,
+        data_in         => cam_data_in,
+        m_axis_tdata    => cam_axis_tdata,
+        m_axis_tvalid   => cam_axis_tvalid,
+        m_axis_tready   => cam_axis_tready
     );
 
     mac_inst : entity work.MAC_RMII(rtl)

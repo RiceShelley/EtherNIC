@@ -2,6 +2,7 @@ import cocotb
 import struct
 import string
 import random
+from random import randint
 from cocotb.triggers import Timer
 from cocotbext.eth import GmiiFrame, MiiPhy
 from cocotb.clock import Clock
@@ -80,6 +81,30 @@ class eth_frame:
             pkt.append(b)
         return bytearray(pkt)
 
+async def send_frame_row(dut, frame_row):
+    assert len(frame_row) == 1280
+
+    dut.cam_vsync.value = 0
+    dut.cam_href.value = 0
+    dut.cam_data_in.value = 0
+
+    for _ in range(4):
+        await RisingEdge(dut.cam_pix_valid)
+
+    dut.cam_vsync.value = 0
+    await RisingEdge(dut.cam_pix_valid)
+    dut.cam_vsync.value = 0
+
+    for b in frame_row:
+        dut.cam_href.value = 1
+        dut.cam_data_in.value = b
+        await RisingEdge(dut.cam_pix_valid)
+
+    dut.cam_href.value = 0
+    await RisingEdge(dut.cam_pix_valid)
+    await RisingEdge(dut.cam_pix_valid)
+
+
 @cocotb.test()
 async def udp_pkt_send_test(dut):
     clock = Clock(dut.sys_clk, 10, units="ns")
@@ -88,6 +113,9 @@ async def udp_pkt_send_test(dut):
     phyClk = Clock(dut.rmii_50mhz_clk, 20, units="ns")
     cocotb.start_soon(phyClk.start())
 
+    camClk = Clock(dut.cam_pix_valid, 100, units="ns")
+    cocotb.start_soon(camClk.start())
+
     dut.rst.value = 0
 
     await RisingEdge(dut.sys_clk)
@@ -95,14 +123,18 @@ async def udp_pkt_send_test(dut):
     rmiiSink = RMII_Sink(dut.rmii_50mhz_clk, dut.rmii_tx_data, dut.rmii_tx_en)
     await cocotb.start(rmiiSink.run())
 
-    await RisingEdge(dut.sys_clk)
-    await RisingEdge(dut.sys_clk)
-
-
 
     for _ in range(4):
+        # send camera frame to device
+        #frame_row = [randint(0, 250) for _ in range(1280)]
+        frame_row = [(i % 255) for i in range(1280)]
+        await send_frame_row(dut, frame_row)
+
+        await RisingEdge(dut.sys_clk)
+        await RisingEdge(dut.sys_clk)
+
         # Read packet from phy
         actual = (await rmiiSink.recv())
-        for p in actual:
-            print(hex(p), end=' ')
-        print("")
+        actual_payload = actual[52:-4]
+        for e, a in zip(frame_row, actual_payload):
+            assert int(a) == e
