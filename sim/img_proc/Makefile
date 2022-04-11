@@ -22,7 +22,10 @@ $(PWD)/../../hdl/mac/rtl/MAC_registers.vhd \
 $(PWD)/../../hdl/mac/rtl/MDIO_controller.vhd \
 $(PWD)/../../hdl/mac/rtl/MAC_rx_pipeline.vhd \
 $(PWD)/../../hdl/mac/rtl/MAC_tx_pipeline.vhd \
-$(PWD)/../../hdl/mac/rtl/MAC_RMII.vhd 
-TOPLEVEL = mac_rmii
-MODULE = mac_sim
+$(PWD)/../../hdl/mac/rtl/MAC_RMII.vhd \
+$(PWD)/../../hdl/nic/rtl/Ov7670_reader.vhd \
+$(PWD)/../../hdl/nic/rtl/udp_traffic_gen.vhd \
+$(PWD)/../../hdl/nic/rtl/top.vhd
+TOPLEVEL = top
+MODULE = img_proc_sim
 include $(shell cocotb-config --makefiles)/Makefile.sim

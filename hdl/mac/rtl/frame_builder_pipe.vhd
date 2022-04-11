@@ -50,7 +50,7 @@ architecture rtl of frame_builder_pipe is
     signal skid_m_axis_tready   : std_logic;
 
     signal test : std_logic;
-
+    signal wait_for_frame_end : std_logic := '0';
 begin
 
     -----------------------------
@@ -74,10 +74,15 @@ begin
     -----------------------------
     -- Detect new frame
     -----------------------------
-    new_frame <= '1' when (data_in_en_buff = '0' and s_axis_tvalid = '1') else '0';
+    new_frame <= '1' when (data_in_en_buff = '0' and s_axis_tvalid = '1' and wait_for_frame_end = '0') else '0';
     detect_frame_proc : process(clk) begin
         if rising_edge(clk) then
             data_in_en_buff <= s_axis_tvalid;
+            if (new_frame = '1') then
+                wait_for_frame_end <= '1';
+            elsif (crc_done = '1') then
+                wait_for_frame_end <= '0';
+            end if;
         end if;
     end process detect_frame_proc;
 

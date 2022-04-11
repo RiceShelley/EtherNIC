@@ -36,7 +36,6 @@ class RMII_Sink:
         self.pkts = []
 
     async def recv(self):
-        print("ran")
         pkt = []
         lastEn = 0
         while True:
