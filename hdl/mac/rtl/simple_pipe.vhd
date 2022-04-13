@@ -16,7 +16,7 @@ end entity simple_pipe;
 
 architecture rtl of simple_pipe is
     type pipe_t is array (0 to DEPTH - 1) of std_logic_vector(PIPE_WIDTH - 1 downto 0);
-    signal pipe : pipe_t;
+    signal pipe : pipe_t := (others => (others => '0'));
 
     attribute shreg_extract : string;
     attribute shreg_extract of pipe : signal is "NO";

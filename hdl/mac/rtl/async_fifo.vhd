@@ -48,6 +48,9 @@ architecture rtl of async_fifo is
     signal full_reg : std_logic := '0';
     signal empty_reg : std_logic := '1';
 
+    attribute ASYNC_REG : string;
+    attribute ASYNC_REG of wr_addr_sync_pipe : signal is "TRUE";
+    attribute ASYNC_REG of rd_addr_sync_pipe : signal is "TRUE";
 begin
 
     wr_addr_gray <= wr_addr xor ("0" & wr_addr(ADDR_WIDTH downto 1));

@@ -63,7 +63,6 @@ begin
         -- AXI Data Stream Slave
         s_axis_tdata    => s_axis_tdata,
         s_axis_tvalid   => s_axis_tvalid,
-        s_axis_tready   => s_axis_tready,
         s_axis_tlast    => s_axis_tlast,
         -- AXI Data Stream Master
         m_axis_tdata    => crc_axis_tdata,

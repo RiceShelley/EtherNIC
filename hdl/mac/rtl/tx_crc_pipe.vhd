@@ -13,7 +13,6 @@ entity tx_crc_pipe is
         -- AXI Data Stream Slave
         s_axis_tdata    : in std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
         s_axis_tvalid   : in std_logic;
-        s_axis_tready   : out std_logic;
         s_axis_tlast    : in std_logic;
         -- AXI Data Stream Master
         m_axis_tdata    : out std_logic_vector(MAC_AXIS_DATA_WIDTH - 1 downto 0);
