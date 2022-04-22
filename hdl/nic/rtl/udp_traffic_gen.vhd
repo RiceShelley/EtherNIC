@@ -25,7 +25,7 @@ end entity udp_traffic_gen;
 architecture rtl of udp_traffic_gen is
     constant PKT_HEADER_LEN     : natural := 42;
     constant ROW_TAG            : natural := 2;
-    constant PKT_MAX_LEN        : natural := 1280 + PKT_HEADER_LEN + ROW_TAG;
+    constant PKT_MAX_LEN        : natural := 1276 + PKT_HEADER_LEN + ROW_TAG;
     constant MAC_HEADER_LEN     : natural := 14;
     constant IPV4_HEADER_LEN    : natural := 20;
     constant IPV4_LENGTH        : std_logic_vector(15 downto 0) := std_logic_vector(to_unsigned(PKT_MAX_LEN - MAC_HEADER_LEN, 16));
@@ -117,12 +117,11 @@ begin
                         end if;
                     when SEND_DATA =>
                         m_axis_tdata <= s_axis_tdata;
-                        if cur_byte /= PKT_MAX_LEN then
+                        if cur_byte /= PKT_MAX_LEN - 1 then
                             m_axis_tvalid_r <= s_axis_tvalid;
                             s_axis_tready_r <= m_axis_tready;
                             if (m_axis_tready = '1' and m_axis_tvalid_r = '1') then
                                 cur_byte <= cur_byte + 1;
-
                             end if;
                         else
                             m_axis_tvalid_r <= s_axis_tvalid;

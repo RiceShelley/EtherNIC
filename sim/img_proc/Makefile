@@ -25,6 +25,11 @@ $(PWD)/../../hdl/mac/rtl/MAC_tx_pipeline.vhd \
 $(PWD)/../../hdl/mac/rtl/MAC_RMII.vhd \
 $(PWD)/../../hdl/nic/rtl/Ov7670_reader.vhd \
 $(PWD)/../../hdl/nic/rtl/udp_traffic_gen.vhd \
+$(PWD)/../../hdl/nic/rtl/mult.vhd \
+$(PWD)/../../hdl/nic/rtl/conv_pipe.vhd \
+$(PWD)/../../hdl/nic/rtl/unfold_conv.vhd \
+$(PWD)/../../hdl/nic/rtl/vid_mem.vhd \
+$(PWD)/../../hdl/nic/rtl/conv.vhd \
 $(PWD)/../../hdl/nic/rtl/top.vhd
 TOPLEVEL = top
 MODULE = img_proc_sim

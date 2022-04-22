@@ -41,6 +41,8 @@ architecture rtl of Ov7670_reader is
     signal wr_ofifo_full    : std_logic := '0';
     signal ofifo_empty      : std_logic := '0';
 
+    signal active_byte      : std_logic := '1';
+
 begin
 
     new_frame <= vsync_re;
@@ -82,9 +84,16 @@ begin
     cap_data_proc : process(clk) begin
         if rising_edge(clk) then
             wr_ofifo_en <= '0';
-            if pix_valid_re = '1' and href_r = '1' then
-                wr_ofifo_data   <= cam_data_r;
-                wr_ofifo_en     <= '1';
+            if href_re = '1' then
+                active_byte <= '1';
+            elsif pix_valid_re = '1' and href_r = '1' then
+                if active_byte = '1' then
+                    wr_ofifo_data   <= cam_data_r;
+                    wr_ofifo_en     <= '1';
+                    active_byte     <= '0';
+                else 
+                    active_byte     <= '1';
+                end if;
             end if;
         end if;
     end process cap_data_proc;

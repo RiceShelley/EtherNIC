@@ -12,6 +12,7 @@ entity top is
         sys_clk                 : in std_logic;
         rst                     : in std_logic;
         rstn_phy                : out std_logic;
+        pass_kern               : in std_logic;
         dout                    : out std_logic_vector(7 downto 0);
         ---------------------------------------
         -- AXI Lite Slave 
@@ -96,6 +97,10 @@ architecture rtl of top is
     signal cam_axis_tvalid   : std_logic;
     signal cam_axis_tready   : std_logic;
 
+    signal conv_axis_tdata    : std_logic_vector(7 downto 0);
+    signal conv_axis_tvalid   : std_logic;
+    signal conv_axis_tready   : std_logic;
+
     --component clk_wiz_0
     --port (
     --    clk_in1     : in std_logic;
@@ -123,32 +128,6 @@ begin
         end if;
     end process capture_data_proc;
 
-    send_pkt <= '1' when (pkt_timer = ((2 ** pkt_timer'length) - 1)) else '0';
-
-    pkt_timer_proc : process (sys_clk) begin
-        if rising_edge(sys_clk) then
-            pkt_timer <= pkt_timer + 1;
-        end if;
-    end process pkt_timer_proc;
-
-    udp_traffic_inst : entity work.udp_traffic_gen(rtl)
-    port map (
-        clk             => sys_clk,
-        rst             => rst,
-        send_pkt        => new_vid_row,
-        rst_cur_row     => new_vid_frame,
-        -- Camera data in
-        s_axis_tdata    => cam_axis_tdata,
-        s_axis_tvalid   => cam_axis_tvalid,
-        s_axis_tready   => cam_axis_tready,
-        -- UDP pkt out
-        m_axis_tdata    => tx_s_axis_tdata,
-        m_axis_tstrb    => tx_s_axis_tstrb,
-        m_axis_tvalid   => tx_s_axis_tvalid,
-        m_axis_tready   => tx_s_axis_tready,
-        m_axis_tlast    => tx_s_axis_tlast
-    );
-
     Ov7670_reader_inst : entity work.Ov7670_reader(rtl)
     port map (
         clk             => sys_clk,
@@ -162,6 +141,41 @@ begin
         m_axis_tdata    => cam_axis_tdata,
         m_axis_tvalid   => cam_axis_tvalid,
         m_axis_tready   => cam_axis_tready
+    );
+
+    conv_inst : entity work.conv(rtl)
+    port map (
+        clk             => sys_clk,
+        rst             => new_vid_frame,
+        pass            => pass_kern,
+        new_row         => new_vid_row,
+        send_pkt_out    => send_pkt,
+        -- Camera data in
+        s_axis_tvalid   => cam_axis_tvalid,
+        s_axis_tdata    => cam_axis_tdata,
+        s_axis_tready   => cam_axis_tready,
+        -- conv data out
+        m_axis_tvalid   => conv_axis_tvalid,
+        m_axis_tdata    => conv_axis_tdata,
+        m_axis_tready   => conv_axis_tready
+    );
+
+    udp_traffic_inst : entity work.udp_traffic_gen(rtl)
+    port map (
+        clk             => sys_clk,
+        rst             => rst,
+        send_pkt        => send_pkt,
+        rst_cur_row     => new_vid_frame,
+        -- Camera data in
+        s_axis_tdata    => conv_axis_tdata,
+        s_axis_tvalid   => conv_axis_tvalid,
+        s_axis_tready   => conv_axis_tready,
+        -- UDP pkt out
+        m_axis_tdata    => tx_s_axis_tdata,
+        m_axis_tstrb    => tx_s_axis_tstrb,
+        m_axis_tvalid   => tx_s_axis_tvalid,
+        m_axis_tready   => tx_s_axis_tready,
+        m_axis_tlast    => tx_s_axis_tlast
     );
 
     mac_inst : entity work.MAC_RMII(rtl)

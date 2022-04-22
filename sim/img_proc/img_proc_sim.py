@@ -2,7 +2,9 @@ import cocotb
 import struct
 import string
 import random
+import struct
 from random import randint
+from itertools import chain
 from cocotb.triggers import Timer
 from cocotbext.eth import GmiiFrame, MiiPhy
 from cocotb.clock import Clock
@@ -81,8 +83,8 @@ class eth_frame:
             pkt.append(b)
         return bytearray(pkt)
 
-async def send_frame_row(dut, frame_row):
-    assert len(frame_row) == 1280
+async def send_frame(dut, frame, cols):
+    assert len(frame[0]) * len(frame) == 640 * cols
 
     dut.cam_vsync.value = 0
     dut.cam_href.value = 0
@@ -91,18 +93,56 @@ async def send_frame_row(dut, frame_row):
     for _ in range(4):
         await RisingEdge(dut.cam_pix_valid)
 
-    dut.cam_vsync.value = 0
+    dut.cam_vsync.value = 1
     await RisingEdge(dut.cam_pix_valid)
     dut.cam_vsync.value = 0
+    for row in frame:
+        for b in row:
+            # Y component 
+            dut.cam_href.value = 1
+            dut.cam_data_in.value = b
+            await RisingEdge(dut.cam_pix_valid)
+            # Random U/V beacuse it is not used
+            dut.cam_data_in.value = randint(0, 255)
+            await RisingEdge(dut.cam_pix_valid)
 
-    for b in frame_row:
-        dut.cam_href.value = 1
-        dut.cam_data_in.value = b
+        dut.cam_href.value = 0
+        await RisingEdge(dut.cam_pix_valid)
         await RisingEdge(dut.cam_pix_valid)
 
-    dut.cam_href.value = 0
-    await RisingEdge(dut.cam_pix_valid)
-    await RisingEdge(dut.cam_pix_valid)
+def conv(frame, pass_sig):
+    rtn = [
+        [0 for _ in range(len(frame[0]) - 2)] for _ in range(len(frame) - 2)
+    ]
+    kern = [
+        [-1, -1, -1],
+        [-1, 8, -1],
+        [-1, -1, -1]
+    ]
+
+    if pass_sig:
+        kern = [
+            [0, 0, 0],
+            [0, 1, 0],
+            [0, 0, 0]
+        ]
+    for y, r in enumerate(rtn):
+        for x, e in enumerate(r):
+            e = (
+            frame[y][x] * kern[0][0]
+            + frame[y + 1][x] * kern[1][0]
+            + frame[y + 2][x] * kern[2][0]
+
+            + frame[y][x + 1] * kern[0][1]
+            + frame[y + 1][x + 1] * kern[1][1]
+            + frame[y + 2][x + 1] * kern[2][1]
+
+            + frame[y][x + 2] * kern[0][2]
+            + frame[y + 1][x + 2] * kern[1][2]
+            + frame[y + 2][x + 2] * kern[2][2]
+            )
+            rtn[y][x] = e
+    return rtn
 
 
 @cocotb.test()
@@ -117,6 +157,7 @@ async def udp_pkt_send_test(dut):
     cocotb.start_soon(camClk.start())
 
     dut.rst.value = 0
+    dut.pass_kern.value = 1
 
     await RisingEdge(dut.sys_clk)
 
@@ -127,14 +168,39 @@ async def udp_pkt_send_test(dut):
     for _ in range(4):
         # send camera frame to device
         #frame_row = [randint(0, 250) for _ in range(1280)]
-        frame_row = [(i % 255) for i in range(1280)]
-        await send_frame_row(dut, frame_row)
+        #frame_row = [(i % 255) for i in range(1280)]
+        rows = 3
+        frame = [
+            [randint(0, 120) for _ in range(640)] for _ in range(rows)
+        ]
+
+        #frame = [
+        #    [1, 1, 1, 1],
+        #    [1, 1, 1, 2],
+        #    [1, 1, 1, 1]
+        #]
+        #print(conv(frame)) 
+        #return 0
+
+        print(frame)
+        cocotb.start_soon(send_frame(dut, frame, rows))
 
         await RisingEdge(dut.sys_clk)
         await RisingEdge(dut.sys_clk)
 
-        # Read packet from phy
-        actual = (await rmiiSink.recv())
-        actual_payload = actual[52:-4]
-        for e, a in zip(frame_row, actual_payload):
+        frame = list(chain.from_iterable(conv(frame, dut.pass_kern.value)))
+        actual_payload = b''
+        for _ in range(rows - 2):
+            # Read packet from phy
+            actual = (await rmiiSink.recv())
+            actual_payload += actual[52:-4]
+
+        count = int(len(actual_payload) / 2)
+        print(actual_payload)
+        actual_payload = struct.unpack('>' + 'h'*count, actual_payload)
+        print(actual_payload)
+        print(frame)
+
+        for e, a in zip(frame, actual_payload):
             assert int(a) == e
+        return 0

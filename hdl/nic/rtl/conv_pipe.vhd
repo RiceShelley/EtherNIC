@@ -6,15 +6,11 @@ entity conv_pipe is
     generic (
         PIX_IN_WIDTH    : natural := 8;
         PIX_OUT_WIDTH   : natural := 8 * 2;
-        KERN_SIZE       : natural := 3;
-        KERN_ROM        : std_logic_vector((8 * (3 ** 2)) - 1 downto 0) :=
-            (std_logic_vector(to_signed(-1, 8)) & std_logic_vector(to_signed(-1, 8)) & std_logic_vector(to_signed(-1, 8)) &
-            std_logic_vector(to_signed(-1, 8)) & std_logic_vector(to_signed(8, 8))  & std_logic_vector(to_signed(-1, 8)) &
-            std_logic_vector(to_signed(-1, 8)) & std_logic_vector(to_signed(-1, 8)) & std_logic_vector(to_signed(-1, 8)))
+        KERN_SIZE       : natural := 3
     );
     port (
         clk             : in std_logic;
-        rst             : in std_logic;
+        pass            : in std_logic;
         start           : in std_logic;
         mat_in          : in std_logic_vector(PIX_IN_WIDTH * KERN_SIZE ** 2 - 1 downto 0);
         pix_out         : out std_logic_vector(PIX_OUT_WIDTH - 1 downto 0);
@@ -38,6 +34,15 @@ architecture rtl of conv_pipe is
     signal pixOutR  : signed(15 downto 0) := (others => '0');
     signal doneR    : std_logic := '0';
 
+    constant CONV_KERN_ROM : std_logic_vector((8 * (3 ** 2)) - 1 downto 0) :=
+        (std_logic_vector(to_signed(-1, 8)) & std_logic_vector(to_signed(-1, 8)) & std_logic_vector(to_signed(-1, 8)) &
+        std_logic_vector(to_signed(-1, 8)) & std_logic_vector(to_signed(8, 8))  & std_logic_vector(to_signed(-1, 8)) &
+        std_logic_vector(to_signed(-1, 8)) & std_logic_vector(to_signed(-1, 8)) & std_logic_vector(to_signed(-1, 8)));
+
+    constant PASS_KERN_ROM : std_logic_vector((8 * (3 ** 2)) - 1 downto 0) :=
+        (std_logic_vector(to_signed(0, 8)) & std_logic_vector(to_signed(0, 8)) & std_logic_vector(to_signed(0, 8)) &
+        std_logic_vector(to_signed(0, 8)) & std_logic_vector(to_signed(1, 8))  & std_logic_vector(to_signed(0, 8)) &
+        std_logic_vector(to_signed(0, 8)) & std_logic_vector(to_signed(0, 8)) & std_logic_vector(to_signed(0, 8)));
 begin
 
     pix_out <= std_logic_vector(pixOutR);
@@ -78,7 +83,11 @@ begin
                     end if;
                 when BUSY =>
                     pixIn   <= matR((curElem + 1) * PIX_IN_WIDTH - 1 downto curElem * PIX_IN_WIDTH);
-                    kernPix <= KERN_ROM((curElem + 1) * PIX_IN_WIDTH - 1 downto curElem * PIX_IN_WIDTH);
+                    if pass = '1' then
+                        kernPix <= PASS_KERN_ROM((curElem + 1) * PIX_IN_WIDTH - 1 downto curElem * PIX_IN_WIDTH);
+                    else
+                        kernPix <= CONV_KERN_ROM((curElem + 1) * PIX_IN_WIDTH - 1 downto curElem * PIX_IN_WIDTH);
+                    end if;
                     if curElem /= (KERN_SIZE ** 2 - 1) then
                         curElem <= curElem + 1;
                     elsif doneR = '1' then

@@ -13,20 +13,14 @@ from cocotbext.axi import (AxiStreamBus, AxiStreamSource, AxiStreamSink, AxiStre
 @cocotb.test()
 async def mult_accum_test(dut):
     mat = [
-        [1, 2, 1],
+        [1, 1, 1],
         [1, 1, 1],
         [1, 1, 1]
     ]
 
-    mat_vec = 0
-    for row in mat:
-        for pix in row:
-            mat_vec = mat_vec << 8
-            mat_vec |= pix
-    print(hex(mat_vec))
 
+    dut.rst.value = 0
     dut.start.value = 0
-    dut.mat_in.value = mat_vec
 
     clock = Clock(dut.clk, 10, units="ns")
     cocotb.start_soon(clock.start())
@@ -35,5 +29,12 @@ async def mult_accum_test(dut):
     dut.start.value = 1
     await RisingEdge(dut.clk)
     for _ in range(40):
+        mat[0][0] = mat[0][0] + 1
+        mat_vec = 0
+        for row in mat:
+            for pix in row:
+                mat_vec = mat_vec << 8
+                mat_vec |= pix
+        dut.matIn.value = mat_vec
         await RisingEdge(dut.clk)
 
