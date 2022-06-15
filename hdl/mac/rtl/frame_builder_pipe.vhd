@@ -2,9 +2,11 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-library work;
-use work.MAC_pack.all;
-use work.eth_pack.all;
+library comp;
+
+library mac;
+use mac.MAC_pack.all;
+use mac.eth_pack.all;
 
 entity frame_builder_pipe is
     port (
@@ -56,7 +58,7 @@ begin
     -----------------------------
     -- CRC gen
     -----------------------------
-    tx_crc_pipe_inst : entity work.tx_crc_pipe(rtl)
+    tx_crc_pipe_inst : entity mac.tx_crc_pipe(rtl)
     port map (
         clk             => clk,
         crc_done_out    => crc_done,
@@ -113,7 +115,7 @@ begin
     skid_m_axis_tvalid   <= not empty;
     s_axis_tready   <= not frame_fifo_full;
 
-    frame_fifo : entity work.sync_fifo(rtl)
+    frame_fifo : entity comp.sync_fifo(rtl)
     generic map (
         DEPTH   => MAX_ETH_FRAME_SIZE
     ) port map (
@@ -129,7 +131,7 @@ begin
         empty       => empty
     );
 
-    fifo_out_skid : entity work.skid_buffer(rtl)
+    fifo_out_skid : entity comp.skid_buffer(rtl)
     generic map (
         DATA_WIDTH      => m_axis_tdata'length
     ) port map (

@@ -2,9 +2,11 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-library work;
-use work.MAC_pack.all;
-use work.eth_pack.all;
+library comp;
+
+library mac;
+use mac.MAC_pack.all;
+use mac.eth_pack.all;
 
 entity MAC_tx_pipeline is 
     generic (
@@ -52,7 +54,7 @@ begin
     -- Frame Builder Pipeline Writer
     ---------------------------------------------------------------
     empty <= not fpb_out_axis_tvalid;
-    fb_pipeline_writer_inst : entity work.fb_pipeline_writer(rtl)
+    fb_pipeline_writer_inst : entity mac.fb_pipeline_writer(rtl)
     generic map (
         PIPELINE_ELEM_CNT => PIPELINE_ELEM_CNT
     ) port map (
@@ -76,7 +78,7 @@ begin
     -- Frame builder pipes
     ---------------------------------------------------------------
     gen_fb_pipes : for i in 0 to PIPELINE_ELEM_CNT - 1 generate
-        frame_builder_pipe_inst : entity work.frame_builder_pipe(rtl)
+        frame_builder_pipe_inst : entity mac.frame_builder_pipe(rtl)
         port map (
             clk                 => clk,
             rst                 => rst,
@@ -96,7 +98,7 @@ begin
     ---------------------------------------------------------------
     -- Frame Builder Pipeline Reader
     ---------------------------------------------------------------
-    fb_pipeline_reader : entity work.fb_pipeline_reader(rtl)
+    fb_pipeline_reader : entity mac.fb_pipeline_reader(rtl)
     generic map (
         PIPELINE_ELEM_CNT => PIPELINE_ELEM_CNT
     ) port map (
@@ -113,7 +115,7 @@ begin
         m_axis_tready   => skid_m_axis_tready
     );
 
-    tx_pipe_out_skid : entity work.skid_buffer(rtl)
+    tx_pipe_out_skid : entity comp.skid_buffer(rtl)
     generic map (
         DATA_WIDTH      => m_axis_tdata'length
     ) port map (

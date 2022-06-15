@@ -2,10 +2,10 @@ SIM=ghdl
 SIM_ARGS += --wave=wave.ghw
 TOPLEVEL_LANG=vhdl
 
-VHDL_SOURCES = $(PWD)/../../hdl/mac/rtl/sync_fifo.vhd \
-$(PWD)/../../hdl/mac/rtl/math_pack.vhd
+# Components lib
+include ../../hdl/comp/sources.mk
 
-TOPLEVEL = sync_fifo
+VHDL_SOURCES = tb.vhd
+TOPLEVEL = tb
 MODULE = sync_fifo_sim
 include $(shell cocotb-config --makefiles)/Makefile.sim
-
