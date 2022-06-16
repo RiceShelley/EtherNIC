@@ -2,9 +2,12 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use work.MAC_pack.all;
-use work.eth_pack.all;
-use work.math_pack.all;
+library comp;
+use comp.math_pack.all;
+
+library mac;
+use mac.MAC_pack.all;
+use mac.eth_pack.all;
 
 entity fb_pipeline_writer is
     generic (

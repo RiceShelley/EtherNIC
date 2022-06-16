@@ -2,9 +2,11 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-library work;
-use work.MAC_pack.all;
-use work.eth_pack.all;
+library comp;
+
+library mac;
+use mac.MAC_pack.all;
+use mac.eth_pack.all;
 
 entity MAC_rx_pipeline is
     port (
@@ -54,7 +56,7 @@ begin
     ------------------------------------------------------------------
     -- Decode layer 1 eth frame to layer 2 eth frame
     ------------------------------------------------------------------
-    l1_decoder_inst : entity work.l1_eth_frame_decoder(rtl)
+    l1_decoder_inst : entity mac.l1_eth_frame_decoder(rtl)
     port map (
         clk                 => clk,
         rx_done_in          => rx_done_in,
@@ -71,7 +73,7 @@ begin
         m_axis_tready       => skid_layer_two_eth_tready
     );
 
-    l1_dec_out_skid_buff : entity work.skid_buffer(rtl)
+    l1_dec_out_skid_buff : entity comp.skid_buffer(rtl)
     generic map (
         DATA_WIDTH => layer_two_eth_tdata'length
     )
@@ -100,7 +102,7 @@ begin
     ------------------------------------------------------------------
     -- Check CRC of eth2 frame
     ------------------------------------------------------------------
-    fcs_check_inst : entity work.crc32_check(rtl)
+    fcs_check_inst : entity mac.crc32_check(rtl)
     port map (
         clk                 => clk,
         frame_start_in      => frame_start,
@@ -116,7 +118,7 @@ begin
     ------------------------------------------------------------------
     pkt_buffer_clr          <= rst or fcs_failed;
     pkt_buffer_axis_tvalid  <= not pkt_buffer_empty;
-    pkt_buffer_inst : entity work.sync_fifo(rtl)
+    pkt_buffer_inst : entity comp.sync_fifo(rtl)
     generic map (
         DATA_WIDTH  => 8,
         DEPTH       => MAX_ETH_FRAME_SIZE)
@@ -134,7 +136,7 @@ begin
     ------------------------------------------------------------------
     -- Packet AXI data stream encoder
     ------------------------------------------------------------------
-    axis_mtr_inst : entity work.MAC_rx_mtr_axis(rtl)
+    axis_mtr_inst : entity mac.MAC_rx_mtr_axis(rtl)
     port map (
         clk                 => clk,
         trans_packet_in     => fcs_passed,

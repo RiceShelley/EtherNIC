@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity top is
+entity NIC is
     generic (
         DATA_WIDTH          : natural := 32;
         ADDR_WIDTH          : natural := 32;
@@ -63,9 +63,9 @@ entity top is
         cam_vsync               : in std_logic;
         cam_data_in             : in std_logic_vector(7 downto 0)
     );
-end entity top;
+end entity NIC;
 
-architecture rtl of top is
+architecture rtl of NIC is
     signal interrupts              : std_logic_vector(15 downto 0);
 
     ---------------------------------------

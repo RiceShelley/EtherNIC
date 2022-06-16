@@ -2,18 +2,21 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use work.MAC_pack.all;
-use work.eth_pack.all;
-use work.math_pack.all;
+library comp;
+use comp.math_pack.all;
+
+library mac;
+use mac.MAC_pack.all;
+use mac.eth_pack.all;
 
 entity fb_pipeline_reader is
     generic (
         PIPELINE_ELEM_CNT : natural := 2
     );
     port (
-        clk         : in std_logic;
-        ready_in    : in std_logic_vector(PIPELINE_ELEM_CNT - 1 downto 0);
-        tx_busy_in  : in std_logic;
+        clk                 : in std_logic;
+        ready_in            : in std_logic_vector(PIPELINE_ELEM_CNT - 1 downto 0);
+        tx_busy_in          : in std_logic;
         -- AXI Data Stream Slave
         s_axis_tdata        : in t_axis_data_array(PIPELINE_ELEM_CNT - 1 downto 0);
         s_axis_tvalid       : in std_logic_vector(PIPELINE_ELEM_CNT - 1 downto 0);

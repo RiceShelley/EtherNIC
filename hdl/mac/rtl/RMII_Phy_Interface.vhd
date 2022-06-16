@@ -2,10 +2,13 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-library work;
-use work.MAC_pack.all;
-use work.eth_pack.all;
-use work.math_pack.all;
+library comp;
+use comp.math_pack.all;
+
+library mac;
+use mac.MAC_pack.all;
+use mac.eth_pack.all;
+
 
 entity RMII_Phy_Interface is
     port (
@@ -138,7 +141,7 @@ begin
     -------------------------------------------------
     -- Sync phy_rx_pkt_done signal to sys clk domain
     -------------------------------------------------
-    sync_rx_pkt_done : entity work.simple_pipe(rtl)
+    sync_rx_pkt_done : entity comp.simple_pipe(rtl)
     generic map (
         PIPE_WIDTH  => 1,
         DEPTH       => 2
@@ -153,7 +156,7 @@ begin
     -------------------------------------------------
     skid_m_axis_tvalid   <= (not dout_fifo_empty);
     fifo_wr_rx      <= '1' when (wr_rx_byte = '1' and rx_pkt_timeout = 0) else '0';
-    async_dout_fifo : entity work.async_fifo(rtl)
+    async_dout_fifo : entity comp.async_fifo(rtl)
     generic map (
         DATA_WIDTH  => rx_byte'length,
         DEPTH       => 32
@@ -170,7 +173,7 @@ begin
         empty   => dout_fifo_empty
     );
 
-    dout_skid : entity work.skid_buffer(rtl)
+    dout_skid : entity comp.skid_buffer(rtl)
     generic map (
         DATA_WIDTH => rx_byte'length
     ) port map (
@@ -194,7 +197,7 @@ begin
     skid_phy_tx_fifo_ne <= not din_fifo_empty;
     s_axis_tready       <= not din_fifo_full;
 
-    async_din_fifo : entity work.async_fifo(rtl)
+    async_din_fifo : entity comp.async_fifo(rtl)
     generic map (
         DATA_WIDTH => 8,
         DEPTH      => 32
@@ -211,7 +214,7 @@ begin
         empty   => din_fifo_empty
     );
 
-    din_skid : entity work.skid_buffer(rtl)
+    din_skid : entity comp.skid_buffer(rtl)
     generic map (
         DATA_WIDTH => rx_byte'length,
         ASYNC_INPUT => "TRUE"
@@ -284,7 +287,7 @@ begin
     -------------------------------------------------
     -- Sync ref_clk_50mhz signal to sys clk domain
     -------------------------------------------------
-    sync_tx_busy_signal : entity work.simple_pipe(rtl)
+    sync_tx_busy_signal : entity comp.simple_pipe(rtl)
     generic map (
         PIPE_WIDTH  => 1,
         DEPTH       => 2

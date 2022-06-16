@@ -2,9 +2,11 @@ SIM=ghdl
 SIM_ARGS += --wave=wave.ghw
 TOPLEVEL_LANG=vhdl
 
-VHDL_SOURCES = $(PWD)/../../hdl/mac/rtl/MDIO_controller.vhd
+# MDIO lib
+include ../../hdl/mdio/sources.mk
 
-TOPLEVEL = mdio_controller
+VHDL_SOURCES = tb.vhd
+
+TOPLEVEL = tb
 MODULE = mdio_sim
 include $(shell cocotb-config --makefiles)/Makefile.sim
-

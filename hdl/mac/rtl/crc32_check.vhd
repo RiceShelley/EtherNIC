@@ -2,8 +2,11 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use work.eth_pack.all;
-use work.math_pack.all;
+library comp;
+use comp.math_pack.all;
+
+library mac;
+use mac.eth_pack.all;
 
 entity crc32_check is
     port (
@@ -80,7 +83,7 @@ begin
     ----------------------------------------------------------------
     -- Pipe delay of crc32 output for comparison with actual value
     ----------------------------------------------------------------
-    crc_delay_inst : entity work.simple_pipe(rtl)
+    crc_delay_inst : entity comp.simple_pipe(rtl)
     generic map (
         PIPE_WIDTH => shift_reg'length,
         DEPTH => FCS_SIZE

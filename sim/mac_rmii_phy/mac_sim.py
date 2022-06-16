@@ -87,10 +87,8 @@ async def mac_standard_rx_test(dut):
     cocotb.start_soon(clock.start())
 
     await RisingEdge(dut.clk)
-    dut.s_axi_aresetn.value = 0 
     dut.rst.value = 0
     await RisingEdge(dut.clk)
-    dut.s_axi_aresetn.value = 1
     await RisingEdge(dut.clk)
 
     phyClk = Clock(dut.rmii_clk, 20, units="ns")
@@ -99,20 +97,7 @@ async def mac_standard_rx_test(dut):
     rmiiSource = RMII_Source(dut.rmii_clk, dut.rmii_rx_data, dut.rmii_crs_dv)
 
     axis_sink = AxiStreamSink(AxiStreamBus.from_prefix(dut, "rx_m_axis"), dut.clk, dut.rst)
-    config = AxiLiteMaster(AxiLiteBus.from_prefix(dut, "s_axi"), dut.clk, dut.rst)
     eth = eth_frame(b'\xDE\xAD\xBE\xEF\x00\x00', b'\xCA\xFE\xBA\xBE\x00\x00')
-
-    # test mdio bus TODO: Expand on this
-    mdio_phy_addr = 3
-    mdio_reg_addr = 5
-    mdio_data = 0xCAFE
-    mdio_write = 1
-    mdio_pkt = (mdio_write << 31) | (mdio_reg_addr << 23) | (mdio_phy_addr << 15) | mdio_data
-    await config.write_dword(0x0000, mdio_pkt)
-    await config.write_dword(0x0008, 1)
-    # Poll until MDIO controller completes transaction
-    while (await config.read_dword(0x000C)) != 0:
-        await Timer(30, 'us')
 
     trials = 0
     for _ in range(0, trials):

@@ -2,8 +2,9 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use work.MAC_pack.all;
-use work.eth_pack.all;
+library mac;
+use mac.MAC_pack.all;
+use mac.eth_pack.all;
 
 entity MAC_rx_mtr_axis is
     port (
